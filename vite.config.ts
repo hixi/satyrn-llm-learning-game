@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
-import { contentPlugin } from './tools/vite-plugin-content';
+import { viteSingleFile } from 'vite-plugin-singlefile';
 
 export default defineConfig({
   base: './',
-  plugins: [contentPlugin()],
+  plugins: [viteSingleFile()],
 });

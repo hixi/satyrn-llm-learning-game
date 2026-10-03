@@ -1,7 +1,0 @@
-id: achievement.rigged-right
-title: Rigged Right
-description: Built a harness that reached the market and stopped there.
-kind: lesson
-condition:
-  event: mechanic.completed
-  mechanic: mechanic.cartwright

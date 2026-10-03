@@ -1,9 +1,0 @@
-id: concept.harness
-term: Harness
-short: The rig around the model — the loop, the limits, the checks.
-body: >-
-  The harness is everything around the model that keeps it on the road: how it
-  loops, how far it may go before it must stop, and how it knows it has
-  arrived. A good harness lets a small model finish what a bare one would
-  bolt past or never reach.
-related: []

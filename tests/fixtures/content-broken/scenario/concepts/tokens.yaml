@@ -1,5 +1,0 @@
-id: concept.tokens
-term: Token
-short: A unit of text a model processes.
-body: A token is a small chunk of text.
-related: []

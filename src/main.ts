@@ -1,77 +1,74 @@
-import Phaser from 'phaser';
-import { content } from './generated/content';
+import './style.css';
+import { content } from './content/content';
 import { Store } from './store/store';
 import { SoundBank } from './game/audio';
-import { BootScene } from './game/scenes/boot';
-import { TitleScene } from './game/scenes/title';
-import { MapScene } from './game/scenes/map';
-import { SCENE_KEYS } from './game/scene-keys';
-import { toast } from './game/overlays/toasts';
-import { NotFoundScene, WorldPlaceholderScene } from './game/scenes/world-placeholder';
-import { HudScene } from './game/overlays/hud';
-import { JournalScene } from './game/overlays/journal';
-import { DialogueScene } from './game/overlays/dialogue';
-import { ActCardScene } from './game/overlays/act-card';
-import { ToastsScene } from './game/overlays/toasts';
-import { installE2eHook } from './game/e2e-hook';
-import { normalizeRoute, routeToSceneKey, setNavigationItemSelectedListener } from './game/router-bridge';
+import { announce } from './game/announce';
 import { parseHash } from './router';
+import { renderHud, renderJournal, renderMap, renderNotFound, renderTitle } from './views/shell';
+import { renderWorld } from './views/world';
+import { watchAchievements } from './ui/toast';
 
 const store = new Store({ achievements: Object.values(content.achievements) });
 const sounds = new SoundBank();
 sounds.setEnabled(store.getState().settings.soundOn);
 
-const config: Phaser.Types.Core.GameConfig = {
-  type: Phaser.AUTO,
-  parent: 'game',
-  scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' },
-  render: { pixelArt: false, roundPixels: false },
-  fps: { target: 60 },
-  scene: [BootScene, TitleScene, MapScene, WorldPlaceholderScene, NotFoundScene, HudScene, JournalScene, DialogueScene, ActCardScene, ToastsScene],
-};
+const app = document.getElementById('app')!;
+const hud = document.createElement('header');
+const main = document.createElement('main');
+app.append(hud, main);
 
-function routeFromHash(): void {
-  const route = normalizeRoute(parseHash(window.location.hash), store.getState().mode);
-  const key = routeToSceneKey(route);
-  const data = route.name === 'world' ? { worldId: route.worldId } : {};
-  game.scene.stop(SCENE_KEYS.title);
-  game.scene.stop(SCENE_KEYS.map);
-  game.scene.stop(SCENE_KEYS.world);
-  game.scene.stop(SCENE_KEYS.notFound);
-  game.scene.stop(SCENE_KEYS.journal);
-  game.scene.start(key, data);
-  // The HUD overlays every route and must survive route changes.
-  if (!game.scene.isActive(SCENE_KEYS.hud)) game.scene.run(SCENE_KEYS.hud);
+const ctx = { store, sounds };
+
+function render(): void {
+  renderHud(hud, store, sounds);
+  renderNow();
 }
 
-const game = new Phaser.Game(config);
+function renderNow(): void {
+  const route = parseHash(window.location.hash);
+  main.innerHTML = '';
+  if (route.name === 'world') {
+    if (!store.getState().seenPrologue) {
+      renderTitle(main, store);
+      announce('The Thread. Walk the prologue first.');
+      return;
+    }
+    renderWorld(main, ctx, store, route.worldId);
+    const world = content.worlds[route.worldId];
+    announce(world ? `${world.title}. ${world.summary}` : 'Unknown Bead.');
+  } else if (route.name === 'journal') {
+    renderJournal(main, store);
+    announce("The Moon's Memory. Journey. Cards. Honors. Keepsake.");
+  } else if (route.name === 'notFound') {
+    renderNotFound(main, route.path);
+    announce('That path is not on the Thread.');
+  } else {
+    if (!store.getState().seenPrologue) {
+      renderTitle(main, store);
+      const heading = main.querySelector('h2')?.textContent ?? 'The Thread';
+      announce(`${heading}.`);
+      return;
+    }
+    renderMap(main, store);
+    const mode = store.getState().mode;
+    announce(mode === 'thread' ? 'The Thread. 10 beads.' : 'All the Beads.');
+  }
+}
 
-// Achievement toasts: diff the earned list on every dispatch.
-let lastAchievements: readonly string[] = [];
-store.subscribe((state) => {
-  const fresh = state.achievements.filter((id) => !lastAchievements.includes(id));
-  lastAchievements = [...state.achievements];
-  for (const id of fresh) {
-    const title = content.achievements[id]?.title ?? id;
-    toast(game, `Honor earned: ${title}.`);
+watchAchievements(store, (id) => content.achievements[id]?.title ?? id);
+// HUD stays live on every store event. Main re-renders only on navigation,
+// a mode switch on the map, or a null event (import/reset) — never on
+// mechanic progress, so in-progress picks, dialogue nodes and journal tabs survive.
+store.subscribe((_, event) => {
+  renderHud(hud, store, sounds);
+  if (!event) {
+    renderNow();
+    return;
+  }
+  if (event.type === 'mode.changed') {
+    const route = parseHash(window.location.hash);
+    if (route.name === 'map') renderNow();
   }
 });
-game.registry.set('store', store);
-game.registry.set('sounds', sounds);
-game.registry.set('seenPrologue', store.getState().seenPrologue);
-game.registry.set('soundOn', store.getState().settings.soundOn);
-game.registry.set('reducedMotion', store.getState().settings.reducedMotion);
-installE2eHook(game);
-
-if (typeof window !== 'undefined') {
-  window.devicePixelRatio = Math.min(window.devicePixelRatio || 1, 2);
-  window.addEventListener('hashchange', routeFromHash);
-  setNavigationItemSelectedListener(routeFromHash);
-  // Deep links (e.g. `#/world/x` on a cold load) must route past the boot
-  // default: Boot leaves the first frame empty; the URL picks the scene.
-  if (window.location.hash && window.location.hash !== '#/') {
-    game.events.once(Phaser.Core.Events.READY, () => {
-      routeFromHash();
-    });
-  }
-}
+window.addEventListener('hashchange', render);
+render();

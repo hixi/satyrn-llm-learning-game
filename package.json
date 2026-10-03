@@ -6,29 +6,18 @@
   "license": "Apache-2.0",
   "author": "Nicola Jordan",
   "scripts": {
-    "build:content": "tsx tools/build-content.ts",
-    "check:content": "tsx tools/check-content.ts",
     "typecheck": "tsc --noEmit",
-    "predev": "npm run build:content",
     "dev": "vite",
-    "prebuild": "npm run check:content",
     "build": "vite build",
     "test": "vitest run",
-    "e2e": "playwright test",
-    "check": "npm run check:content && npm run typecheck && npm run test && npm run build && npm run e2e"
+    "check": "npm run typecheck && npm run test && npm run build"
   },
-  "dependencies": {
-    "phaser": "^3.90.0"
-  },
+  "dependencies": {},
   "devDependencies": {
-    "@playwright/test": "^1.49.1",
     "@types/node": "^22.10.5",
-    "jsdom": "^26.0.0",
-    "tsx": "^4.19.2",
     "typescript": "^5.7.3",
     "vite": "^6.0.7",
-    "vitest": "^2.1.8",
-    "yaml": "^2.7.0",
-    "zod": "^3.24.1"
+    "vite-plugin-singlefile": "^2.3.3",
+    "vitest": "^2.1.8"
   }
 }

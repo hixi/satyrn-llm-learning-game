@@ -1,4 +1,4 @@
-import type { Achievement } from '../../tools/content/schema';
+import type { Achievement } from '../content/types';
 import { evaluateAchievements } from './achievements';
 import { exportState, importState, loadState, saveState } from './persistence';
 import { applyEvent, createInitialState, type GameState, type StoragePort, type StoreEvent } from './state';

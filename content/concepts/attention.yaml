@@ -1,8 +1,0 @@
-id: concept.attention
-term: Attention
-short: What is lit is all the system knows.
-body: >-
-  A model does not see everything at once. It sees what you bring into view. The
-  lantern in this room is a picture of that: whatever it lights is the whole
-  world to the Satyrn, and everything else simply does not exist yet.
-related: [concept.ai-system]

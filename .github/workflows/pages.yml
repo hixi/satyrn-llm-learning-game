@@ -26,9 +26,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      # Build only. Tests, type check, and e2e are run locally, not in CI.
-      # `prebuild` still runs the strict content check (cheap, no browser), so a
-      # deploy is never built from incoherent content.
+      # Build only. Tests and type check run locally via `npm run check`, not in CI.
       - run: npm run build
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5

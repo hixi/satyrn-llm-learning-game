@@ -1,9 +1,0 @@
-id: concept.runaway-loop
-term: Runaway loop
-short: Repeating the same step while nothing changes.
-body: >-
-  A runaway loop is work that looks like progress and is not. The same step is
-  taken again and again with no new result, and the budget drains away while
-  the task stands still. It is not laziness; it is a pattern the system cannot
-  see from inside.
-related: [concept.loop-breaker]

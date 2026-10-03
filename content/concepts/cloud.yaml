@@ -1,8 +1,0 @@
-id: concept.cloud
-term: Cloud
-short: A model reached over a pipe to someone else's lake.
-body: >-
-  A cloud model is reached over a pipe. It is quick and vast, and someone else
-  keeps it running for you — for a price, and on their terms. Your prompts
-  travel down the pipe and your privacy travels with them.
-related: [concept.local-model]

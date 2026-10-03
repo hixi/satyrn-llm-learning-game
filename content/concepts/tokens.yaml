@@ -1,8 +1,0 @@
-id: concept.tokens
-term: Token
-short: The unit of text a model reads and writes.
-body: >-
-  A model does not read letters or words the way you do. It reads tokens: small
-  chunks of text. Everything you show it is measured in tokens, and every token
-  you spend is a token the model must hold in view at once.
-related: []

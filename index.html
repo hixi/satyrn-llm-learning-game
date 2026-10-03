@@ -4,30 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Satyrn — The Thread</title>
-    <style>
-      html,
-      body {
-        margin: 0;
-        padding: 0;
-        block-size: 100%;
-        background: #fbf7ef;
-      }
-      #game canvas {
-        display: block;
-        touch-action: none;
-      }
-      .visually-hidden {
-        position: absolute;
-        inline-size: 1px;
-        block-size: 1px;
-        overflow: hidden;
-        clip: rect(0 0 0 0);
-        white-space: nowrap;
-      }
-    </style>
   </head>
   <body>
-    <div id="game"></div>
+    <div id="app"></div>
     <div id="satyrn-live" class="visually-hidden" aria-live="polite"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

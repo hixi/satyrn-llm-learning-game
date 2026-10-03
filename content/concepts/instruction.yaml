@@ -1,8 +1,0 @@
-id: concept.instruction
-term: Instruction
-short: A standing order a literal reader follows exactly.
-body: >-
-  An instruction is what you tell the system to do. A literal reader does not
-  guess your intent; it does precisely what the words say. Most trouble with a
-  model is not defiance — it is a reasonable reading of an unreasonable order.
-related: [concept.constraint]

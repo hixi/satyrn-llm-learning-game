@@ -1,7 +1,0 @@
-id: achievement.first-light
-title: First Light
-description: Light every spot.
-kind: lesson
-condition:
-  event: mechanic.completed
-  mechanic: mechanic.lantern

@@ -1,8 +1,0 @@
-id: concept.evidence
-term: Evidence
-short: A check that could have failed and did not.
-body: >-
-  Evidence is not a claim repeated more firmly. It is the result of a check
-  that had a real chance of failing. Verify, do not assert: build the test
-  that could say no, and then show that it said yes.
-related: []

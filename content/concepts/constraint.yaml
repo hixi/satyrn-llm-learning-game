@@ -1,8 +1,0 @@
-id: concept.constraint
-term: Constraint
-short: A condition that narrows what is allowed.
-body: >-
-  A constraint says what must be true for something to pass. An ambiguous
-  constraint leaves an edge case for the reader to guess, and a literal reader
-  will guess with perfect confidence. The wording is the engineering.
-related: []

@@ -1,8 +1,0 @@
-id: concept.context-window
-term: Context window
-short: The finite cup everything must fit inside.
-body: >-
-  A model can only hold so much text at once. That limit is the context window.
-  Whatever does not fit is not there for the model at all. Pouring more in does
-  not widen the cup; it only spills what was already there.
-related: [concept.tokens]

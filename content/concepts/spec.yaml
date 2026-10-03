@@ -1,8 +1,0 @@
-id: concept.spec
-term: Spec
-short: A description precise enough for someone else to build and check.
-body: >-
-  A spec says what is to be built in terms another person can act on and
-  verify. "Sturdy enough" cannot be built, because no two builders would agree
-  on what it means. "Twenty bricks high" can be built, and then measured.
-related: [concept.verification]

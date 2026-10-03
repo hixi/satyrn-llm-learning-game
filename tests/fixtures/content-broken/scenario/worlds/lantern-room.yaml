@@ -1,9 +1,0 @@
-id: world.lantern-room
-title: The Lantern Room
-act: prologue
-order: 0
-keeper: character.satyrn
-concepts: [concept.tokens]
-mechanic: mechanic.lantern
-summary: A dark workshop.
-intro: The Satyrn offers you a lantern.

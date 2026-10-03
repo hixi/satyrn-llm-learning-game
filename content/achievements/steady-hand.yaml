@@ -1,7 +1,0 @@
-id: achievement.steady-hand
-title: Steady Hand
-description: Kept the cup to what the terrace truly needed.
-kind: lesson
-condition:
-  event: mechanic.completed
-  mechanic: mechanic.rain-gauge

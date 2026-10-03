@@ -1,7 +1,0 @@
-id: achievement.right-bird
-title: Right Bird for the Errand
-description: Matched every task to a bird that suited it — no bird twice.
-kind: lesson
-condition:
-  event: mechanic.completed
-  mechanic: mechanic.aviary

@@ -6,9 +6,10 @@ describe('router', () => {
     expect(parseHash('')).toEqual({ name: 'map' });
     expect(parseHash('#/')).toEqual({ name: 'map' });
   });
-  it('parses world and concept routes', () => {
+  it('lands legacy thread and concept links on the map and journal', () => {
+    expect(parseHash('#/thread')).toEqual({ name: 'map' });
     expect(parseHash('#/world/world.lantern-room')).toEqual({ name: 'world', worldId: 'world.lantern-room' });
-    expect(parseHash('#/concept/concept.tokens')).toEqual({ name: 'concept', conceptId: 'concept.tokens' });
+    expect(parseHash('#/concept/concept.tokens')).toEqual({ name: 'notFound', path: 'concept/concept.tokens' });
   });
   it('returns notFound for an unknown top-level path', () => {
     expect(parseHash('#/nonsense')).toEqual({ name: 'notFound', path: 'nonsense' });
@@ -16,10 +17,8 @@ describe('router', () => {
   it('round-trips every known route', () => {
     for (const r of [
       { name: 'map' } as const,
-      { name: 'thread' } as const,
       { name: 'journal' } as const,
       { name: 'world', worldId: 'world.x' } as const,
-      { name: 'concept', conceptId: 'concept.x' } as const,
     ]) {
       expect(parseHash(routeToHash(r))).toEqual(r);
     }

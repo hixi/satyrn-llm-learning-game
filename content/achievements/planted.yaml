@@ -1,7 +1,0 @@
-id: achievement.planted
-title: Planted
-description: Wandered the commons and added a Bead of your own.
-kind: journey
-condition:
-  event: mechanic.completed
-  mechanic: mechanic.commons-garden

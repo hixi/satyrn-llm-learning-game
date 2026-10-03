@@ -1,7 +1,0 @@
-id: achievement.first-light
-title: First Light
-description: Lit every corner of the Lantern Room.
-kind: lesson
-condition:
-  event: mechanic.completed
-  mechanic: mechanic.lantern

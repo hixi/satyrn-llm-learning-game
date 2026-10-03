@@ -1,7 +1,0 @@
-id: achievement.standing-order
-title: A Standing Order That Stands
-description: Found the one order that survives every edge case.
-kind: lesson
-condition:
-  event: mechanic.completed
-  mechanic: mechanic.gate-of-orders

@@ -1,8 +1,0 @@
-id: concept.taxonomy
-term: Taxonomy
-short: Naming the kinds, so you can choose between them.
-body: >-
-  A taxonomy is a way of sorting things into named kinds. Once you can say
-  "this is a swift little model" or "this is a vast careful one", you can match
-  the kind to the errand instead of hoping one size fits all.
-related: []

@@ -1,9 +1,0 @@
-id: concept.agent
-term: Agent
-short: A model given tools, memory, and the ability to act.
-body: >-
-  An agent is a model that has been given something to do and some way to do
-  it. It takes a step, looks at the result, and takes another. Left alone, an
-  agent will keep stepping; whether it stops in the right place is a matter of
-  the rig you built around it.
-related: [concept.harness]

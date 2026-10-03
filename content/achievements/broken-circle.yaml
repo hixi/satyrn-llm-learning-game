@@ -1,7 +1,0 @@
-id: achievement.broken-circle
-title: Broken Circle
-description: Broke the repeating loop and kept the morning's work.
-kind: lesson
-condition:
-  event: mechanic.completed
-  mechanic: mechanic.round-path

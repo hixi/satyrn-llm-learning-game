@@ -1,7 +1,0 @@
-id: achievement.measurable
-title: Measurable
-description: Wrote a spec the Mason could build and check.
-kind: lesson
-condition:
-  event: mechanic.completed
-  mechanic: mechanic.blueprint

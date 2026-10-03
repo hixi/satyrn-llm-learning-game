@@ -1,8 +1,0 @@
-id: dialogue.satyrn.intro
-start: start
-nodes:
-  start:
-    id: start
-    speaker: character.satyrn
-    text: Hello, Wayfarer.
-    choices: []

@@ -1,9 +1,0 @@
-id: mechanic.rain-gauge
-title: The Rain-Gauge
-description: d
-a11y: a
-params:
-  capacity: 1
-  drops:
-    - { id: a, label: "a", essential: true }
-    - { id: b, label: "b", essential: true }

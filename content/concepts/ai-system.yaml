@@ -1,8 +1,0 @@
-id: concept.ai-system
-term: AI system
-short: A model plus the tools, memory, and limits around it.
-body: >-
-  An AI system is more than a model. It is the model together with the tools it
-  may call, the memory it carries, and the limits it works within. Change any of
-  those and you have changed the system, even if the model is the same.
-related: []

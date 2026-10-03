@@ -1,8 +1,0 @@
-id: concept.models
-term: Model
-short: What actually does the reading and writing.
-body: >-
-  A model is the thing that takes your tokens and produces an answer. Models
-  differ in size, speed, and care. A small one is quick and cheap; a large one
-  is slower and holds more. None of them is simply "better".
-related: [concept.taxonomy]

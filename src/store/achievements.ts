@@ -1,4 +1,4 @@
-import type { Achievement, Condition } from '../../tools/content/schema';
+import type { Achievement, Condition } from '../content/types';
 import type { GameState, StoreEvent } from './state';
 import type { Predicate } from './store';
 

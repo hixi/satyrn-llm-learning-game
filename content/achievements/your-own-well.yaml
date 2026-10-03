@@ -1,7 +1,0 @@
-id: achievement.your-own-well
-title: Your Own Well
-description: Kept what was private in the well, and sent the rest down the pipe.
-kind: lesson
-condition:
-  event: mechanic.completed
-  mechanic: mechanic.well-and-pipe

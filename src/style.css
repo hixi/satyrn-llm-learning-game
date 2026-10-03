@@ -1,0 +1,266 @@
+:root {
+  --paper: #fbf7ef;
+  --ink: #2a2622;
+  --yellow: #e3d678;
+  --greige: #efe4d2;
+  --charcoal: #383330;
+  --yellow-dark: #433715;
+  --night: #241f1b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+#app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 1rem 4rem;
+}
+
+h1,
+h2,
+h3,
+.bead-title,
+.app-title {
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  line-height: 1.2;
+}
+
+.hud {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--greige);
+  position: sticky;
+  top: 0;
+  background: var(--paper);
+  z-index: 10;
+  flex-wrap: wrap;
+}
+
+.hud .mode-group {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.hud .spacer {
+  flex: 1;
+}
+
+.stars {
+  font-variant-numeric: tabular-nums;
+}
+
+button {
+  font: inherit;
+  min-height: 48px;
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  border: 2px solid var(--charcoal);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--greige);
+}
+
+button[aria-pressed='true'],
+button.primary {
+  background: var(--charcoal);
+  color: var(--paper);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.bead-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.bead-list a {
+  display: block;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--charcoal);
+  border-radius: 10px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.bead-list a:hover {
+  background: var(--greige);
+}
+
+.bead-list a .meta {
+  display: block;
+  font-size: 0.875rem;
+  opacity: 0.8;
+}
+
+.act-group + .act-group {
+  margin-top: 1.5rem;
+}
+
+.world-header p,
+.intro,
+.summary {
+  max-width: 60ch;
+}
+
+.dialogue {
+  border-left: 4px solid var(--yellow);
+  padding: 0.5rem 1rem;
+  margin: 1rem 0;
+  background: var(--greige);
+  border-radius: 0 10px 10px 0;
+}
+
+.dialogue .speaker {
+  font-weight: bold;
+}
+
+.dialogue .choices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.mechanic {
+  border: 2px solid var(--charcoal);
+  border-radius: 16px;
+  padding: 1rem;
+  margin: 1.5rem 0;
+  background: #fffdf8;
+}
+
+.mechanic fieldset {
+  border: 1px solid var(--greige);
+  border-radius: 10px;
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+}
+
+.mechanic legend {
+  padding: 0 0.5rem;
+  font-weight: bold;
+}
+
+.mechanic .row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.mechanic .feedback {
+  margin-top: 0.75rem;
+  font-weight: bold;
+}
+
+.mechanic .feedback.bad {
+  color: #8a2a1b;
+}
+
+.mechanic .feedback.good {
+  color: #2f6b2f;
+}
+
+.mechanic .solved {
+  border: 2px solid #2f6b2f;
+  border-radius: 10px;
+  padding: 0.75rem;
+  margin-top: 0.75rem;
+  background: #f0f7f0;
+}
+
+select,
+input[type='text'] {
+  font: inherit;
+  min-height: 48px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  border: 2px solid var(--charcoal);
+  background: white;
+  color: var(--ink);
+  max-width: 100%;
+}
+
+.concepts {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
+
+.concepts details {
+  border: 1px solid var(--charcoal);
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+  background: white;
+  max-width: 100%;
+}
+
+.concepts summary {
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.toast-stack {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 50;
+  width: min(90vw, 560px);
+}
+
+.toast {
+  background: var(--charcoal);
+  color: var(--paper);
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.journal-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
+
+.skip-link {
+  margin-top: 1rem;
+}

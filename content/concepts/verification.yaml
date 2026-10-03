@@ -1,8 +1,0 @@
-id: concept.verification
-term: Verification
-short: How you know the build matches the drawing.
-body: >-
-  Verification is the check that turns a claim into evidence. It needs a case
-  that can pass and a case that can fail; without both, it is not a check at
-  all. Build from the spec, then measure the result against it.
-related: []

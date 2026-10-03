@@ -19,7 +19,8 @@ literacy first, then the Satyrn method, then the community.
 ## Play
 
 No backend, no accounts, no network calls. Everything runs in the browser and
-your progress stays in your own `localStorage`.
+your progress stays in your own `localStorage`. The production bundle is a
+single self-contained `dist/index.html` (JS + CSS inlined).
 
 ```sh
 npm install
@@ -29,17 +30,14 @@ npm run dev
 Then open the address Vite prints. For a production build:
 
 ```sh
-npm run build      # strict content check, then bundle into dist/
-npm run preview    # serve the built site
+npm run build      # bundle into dist/
 ```
 
 The repository ships a GitHub Actions workflow that deploys `dist/` to
 **GitHub Pages** on every push to `main`
 (`https://<owner>.github.io/<repo>/`). Routing is hash-based, so it needs no
-server rewrite rules. The workflow builds only — the test suite, type check,
-and e2e run locally (`npm run check`), not in CI. The build still runs the strict
-content check, so a broken reference or an unsolvable scenario fails the deploy
-rather than shipping.
+server rewrite rules. Tests and type check run locally (`npm run check`), not
+in CI.
 
 ## The world
 
@@ -61,91 +59,82 @@ and easily distracted, the one you are learning to keep on track — and the
 **Moon**, your journal and your counterweight, who asks how you could know
 something is true.
 
-Every world has its own mechanic: pour raindrops into a fixed cup, match birds
-to errands, rig a cart so the horse arrives *and stops*, spot the mule's
-repeating circle, write an order a literal gate will obey, refuse a scale that
-cannot fail, turn a drawing into a spec, route the day between your own well and
-a shared pipe, and plant a Bead of your own in the commons.
+Every world has its own mechanic: light the lantern's corners, pour raindrops
+into a fixed cup, match birds to errands, rig a cart so the horse arrives *and
+stops*, spot the mule's repeating circle, write an order a literal gate will
+obey, refuse a scale that cannot fail, turn a drawing into a spec, route the day
+between your own well and a shared pipe, and plant a Bead of your own in the
+commons.
 
 ## Features
 
 - **Ten worlds, ten distinct mechanics** — no two play the same way.
 - **Freely selectable and skippable.** Every Bead is enterable at any time, and
   every mechanic has a *Continue without playing* path, so no one is ever stuck.
-- **Keyboard-first.** Every mechanic is completable with the keyboard alone and
-  declares a screen-reader description; any motion honours
-  `prefers-reduced-motion`.
-- **Achievements distinguish the three honest outcomes:** solving a world's
-  lesson, skipping it with *Continue without playing* (recorded and
-  acknowledged — and it does **not** grant the lesson), and completing the
-  journey by planting a Bead in the commons.
+- **Keyboard-first.** Every mechanic is completable with the keyboard alone;
+  any sound is off until you ask for it.
+- **Achievements distinguish the honest outcomes:** solving a world's lesson,
+  skipping it with *Continue without playing* (recorded and acknowledged — and
+  it does **not** grant the lesson), and completing the journey by planting a
+  Bead in the commons.
 - **Your progress is yours.** Versioned save state with migrations, plus
   export, import, and reset in the journal.
 - **No accounts, no tracking, no ambient network.**
 
 ## How it is built
 
-TypeScript, [Vite](https://vite.dev), and [Phaser](https://phaser.io).
-A small event-bus store and a hash router; the canvas is the whole UI.
+TypeScript, [Vite](https://vite.dev), and plain DOM — no game engine, no UI
+framework. A small event-bus store and a hash router; the page is the UI.
 
-The design goal is that **every part is independently replaceable** — a world, a
-mechanic, a concept, an achievement — and that the references between parts are
-**checked automatically** rather than trusted.
+The design goal is that **every part is independently replaceable** — a world,
+a mechanic, a concept, an achievement — and that an LLM can rebuild any part
+from one file without understanding the rest.
 
-- **Content is data.** Worlds, concepts, characters, achievements, and
-  dialogues live as YAML under `content/`. Structure is typed; prose is
-  schema-validated. No Lit, no HTML chrome: every screen is a Phaser scene.
-- **References are one-directional** (a world points at its concepts; a concept
-  never points back), which forbids cycles and is what makes a part swappable.
-- **A link checker resolves the whole graph** at build time: dangling
-  references, duplicate ids, cycles, and unreachable worlds. In development it
-  warns and the game shows a visible placeholder; in `build` it **fails hard**.
-- **Every mechanic's scenario is validated at build time** against its own
-  logic. A world whose puzzle is unsolvable — more essential drops than the cup
-  holds, no check that can fail, an ambiguous order, sensitive needs past the
-  well — fails the build. Each validator lives beside the mechanic and reuses
-  its parser, so the check cannot drift from the mechanic itself.
+- **Content is TypeScript.** Worlds, concepts, characters, achievements, and
+  dialogues live as one frozen bundle in `src/content/content.ts`, typed by
+  `src/content/types.ts`. Edit the bundle directly; `tsc` checks every
+  reference.
 - **Every mechanic's logic is a pure module** (`src/game/worlds/<id>/logic.ts`):
-  scenario parsing and validation live beside the world's rules, importable
-  with zero Phaser, and the scene layer renders over them.
+  scenario parsing and validation beside the world's rules, importable with
+  zero DOM. The view layer (`src/views/mechanics/<id>.ts`) renders over it.
+- **Views are store-driven and idempotent.** A view is
+  `render(host, ctx, …): void`, reads store state, and clears only its own
+  host. Completing a mechanic dispatches store events; the solved state renders
+  via a store subscription — never a full page re-render, so in-progress picks
+  survive. The HUD re-renders on every event; the main view only on navigation.
+- **Tests run in jsdom, no browser.** `npm run check` is `tsc --noEmit`,
+  `vitest run` (logic + direct view renders + `.click()`), and `vite build`.
+  About two seconds, no server.
 
 ```
-content/     authored source of truth (YAML parts)
-tools/       schema, loader, link checker, content build, Vite plugin
-src/         app shell, store, router, components, mechanics/<id>/
-  generated/ the content bundle, generated at build time (committed)
-tests/       unit, content, mechanic, and Playwright e2e
-docs/superpowers/  the design spec and the four wave plans
+src/content/   frozen content bundle + types (edit here)
+src/game/      audio, announce, pure world logic (<id>/logic.ts)
+src/store/     event-bus store, state, achievements, persistence
+src/ui/        tiny DOM helpers, dialogue renderer, toasts
+src/views/     shell (title/map/journal), world, mechanics/<id>.ts
+tests/         unit, content, mechanic, and view tests (Vitest + jsdom)
 ```
 
 ## Development
 
 ```sh
-npm run dev           # content build + Vite dev server
-npm run check:content # strict check: links, scenarios, and a stale bundle
-npm run typecheck     # tsc --noEmit
-npm test              # unit and component tests (Vitest + jsdom)
-npm run e2e           # Playwright browser walk of every act
-npm run check         # everything: content, typecheck, unit, build, e2e
+npm run dev        # Vite dev server
+npm run typecheck  # tsc --noEmit
+npm test           # unit and view tests (Vitest + jsdom)
+npm run check      # everything: typecheck, unit, build
 ```
-
-The test suite proves the checks in both directions: broken fixtures (dangling,
-duplicate, cycle, unreachable) must fail, and the good ones must pass. Every
-mechanic is proven solvable by its own tests.
 
 ## Contributing a world
 
-The parts model is designed for this. A new Bead is:
+A new Bead is:
 
-1. `content/worlds/<id>.yaml` (and its concepts, characters, dialogue,
-   achievement, and mechanic `params`),
-2. a logic module in `src/game/worlds/<id>/logic.ts` (pure, Phaser-free),
-3. a validator line in `src/game/worlds/scenarios.ts`,
-4. an entry in `content/threads/main.yaml`.
+1. an entry in `src/content/content.ts` (world + concepts + mechanic `params`),
+2. a logic module in `src/game/worlds/<id>/logic.ts` (pure, DOM-free),
+3. a view in `src/views/mechanics/<id>.ts` (DOM over the logic),
+4. a line in `src/game/worlds/scenarios.ts` (validator table),
+5. an entry in the `thread.main` sequence.
 
-`npm run check` must be green. See the design spec in
-[`docs/superpowers/specs/`](docs/superpowers/specs/) for the full architecture,
-and the wave plans for how each act was built.
+`npm run check` must be green.
 
 ## License
 

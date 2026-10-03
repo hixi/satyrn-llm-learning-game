@@ -1,8 +1,0 @@
-id: world.x
-title: X
-act: act1
-order: 0
-concepts: [concept.missing]
-mechanic: mechanic.lantern
-summary: s
-intro: i

@@ -10,10 +10,6 @@ import { validateScenario as blueprint } from './blueprint/logic';
 import { validateScenario as well } from './well/logic';
 import { validateScenario as garden } from './garden/logic';
 
-/**
- * Build-time validators for every mechanic id. Pure: no DOM, no Lit, no Phaser,
- * so the content build can run them in Node.
- */
 export const SCENARIO_VALIDATORS: Record<string, ScenarioValidator> = {
   'mechanic.lantern': lantern,
   'mechanic.rain-gauge': rainGauge,

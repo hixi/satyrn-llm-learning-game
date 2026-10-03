@@ -1,9 +1,0 @@
-id: concept.loop-breaker
-term: Loop breaker
-short: Noticing the repetition without halting the useful work.
-body: >-
-  A loop breaker watches for the same step returning and changes the pattern
-  before the work is spent. The trick is that it must not simply stop
-  everything: the useful steps taken before the circle began are still worth
-  keeping.
-related: []

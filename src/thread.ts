@@ -1,4 +1,4 @@
-import type { Content } from '../tools/content/schema';
+import type { Content } from './content/types';
 
 export function threadSequence(content: Content): string[] {
   return content.threads['thread.main']?.sequence ?? [];

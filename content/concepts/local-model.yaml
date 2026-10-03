@@ -1,9 +1,0 @@
-id: concept.local-model
-term: Local model
-short: >-
-  A model on your own machine — private, yours, bounded by what you own.
-body: >-
-  A local model runs on the machine in front of you. Your work does not leave
-  the house, you keep the tap, and nothing changes underneath you without your
-  say. The trade is that you are bounded by what your own machine can hold.
-related: []
