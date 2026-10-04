@@ -32,6 +32,26 @@ export function renderWorld(host: HTMLElement, ctx: Ctx, store: Store, worldId: 
   const mechanic = content.mechanics[world.mechanic];
   if (mechanic) {
     renderMechanic(host, ctx, world.id, mechanic.id, mechanic.params);
+
+    if (world.engineRoom) {
+      const details = document.createElement('details');
+      details.className = 'engine-room';
+      const summary = document.createElement('summary');
+      const done = store.getState().completedEngineRooms.includes(world.id);
+      summary.textContent = done ? `✓ ${world.engineRoom.title}` : world.engineRoom.title;
+      const body = el('p', world.engineRoom.body);
+      details.append(summary, body);
+      if (!done) {
+        const open = button('Look beneath the surface', () => {
+          store.dispatch({ type: 'world.engineRoom.completed', world: world.id });
+          summary.textContent = `✓ ${world.engineRoom!.title}`;
+        });
+        open.classList.add('skip-link');
+        details.appendChild(open);
+      }
+      host.appendChild(details);
+    }
+
     const concepts = el('div', undefined, 'concepts');
     for (const conceptId of world.concepts) {
       const concept = content.concepts[conceptId];

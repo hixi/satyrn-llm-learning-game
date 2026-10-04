@@ -57,12 +57,18 @@ function renderNow(): void {
 
 watchAchievements(store, (id) => content.achievements[id]?.title ?? id);
 // HUD stays live on every store event. Main re-renders only on navigation,
-// a mode switch on the map, or a null event (import/reset) — never on
-// mechanic progress, so in-progress picks, dialogue nodes and journal tabs survive.
+// an act-card dismissal, a mode switch on the map, or a null event
+// (import/reset) — never on mechanic progress, so in-progress picks,
+// dialogue nodes and journal tabs survive.
 store.subscribe((_, event) => {
   renderHud(hud, store, sounds);
   if (!event) {
     renderNow();
+    return;
+  }
+  if (event.type === 'actCard.seen') {
+    const route = parseHash(window.location.hash);
+    if (route.name === 'map') renderNow();
     return;
   }
   if (event.type === 'mode.changed') {

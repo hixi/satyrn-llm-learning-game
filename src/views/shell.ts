@@ -33,6 +33,30 @@ const ACT_LABELS: Record<string, string> = {
   act3: 'Act III — The Method and the Commons',
 };
 
+const ACT_ORDER = ['prologue', 'act1', 'act2', 'act3'] as const;
+
+function firstUnseenAct(sequence: string[], visited: string[], seen: string[]): string | undefined {
+  const seenWorlds = new Set(visited);
+  for (const act of ACT_ORDER) {
+    const group = sequence.filter((id) => content.worlds[id]?.act === act);
+    if (!group.length || seen.includes(act)) continue;
+    if (group.some((id) => seenWorlds.has(id))) return act;
+  }
+  return undefined;
+}
+
+export function renderActCard(act: string, store: Store): HTMLElement {
+  const strings = content.strings['strings.ui']?.values ?? {};
+  const card = el('section', undefined, 'act-card');
+  card.setAttribute('aria-label', ACT_LABELS[act] ?? act);
+  card.append(
+    el('h1', ACT_LABELS[act] ?? act),
+    el('p', strings[`actCard.${act}`] ?? strings.threadNarration ?? ''),
+    button('Continue', () => store.dispatch({ type: 'actCard.seen', act }), { primary: true }),
+  );
+  return card;
+}
+
 export function renderHud(host: HTMLElement, store: Store, sounds: { setEnabled(on: boolean): void; toggleBlip(): void }): void {
   host.innerHTML = '';
   host.className = 'hud';
@@ -122,6 +146,13 @@ export function renderMap(host: HTMLElement, store: Store): void {
   host.innerHTML = '';
   const state = store.getState();
   const sequence = threadSequence(content);
+  if (state.mode === 'thread') {
+    const act = firstUnseenAct(sequence, state.visitedWorlds, state.seenActCards);
+    if (act) {
+      host.appendChild(renderActCard(act, store));
+      return;
+    }
+  }
   const heading = state.mode === 'thread' ? 'The Thread' : 'All the Beads';
   host.appendChild(el('h1', heading));
   const narration = content.strings['strings.ui']?.values.threadNarration;
@@ -162,7 +193,7 @@ export function renderMap(host: HTMLElement, store: Store): void {
     }
     host.appendChild(list);
   } else {
-    for (const act of ['prologue', 'act1', 'act2', 'act3']) {
+    for (const act of ACT_ORDER) {
       const group = sequence.filter((id) => content.worlds[id]?.act === act);
       if (!group.length) continue;
       const section = el('section', undefined, 'act-group');
@@ -250,34 +281,49 @@ export function renderJournal(host: HTMLElement, store: Store): void {
       body.append(el('h2', 'Honors'), ul);
     } else {
       body.appendChild(el('h2', 'Keepsake'));
-      body.appendChild(el('p', 'Your progress lives in this browser. Export a copy, or start over.'));
+      body.appendChild(el('p', 'Your progress lives in this browser. Copy it out, paste one back in, or start over.'));
       const row = el('div', undefined, 'row');
+      const status = el('p', '', 'feedback');
+      status.setAttribute('role', 'status');
+      const box = document.createElement('textarea');
+      box.className = 'keepsake-box';
+      box.setAttribute('aria-label', 'Keepsake code');
+      box.placeholder = 'Paste a keepsake code here to import it.';
       row.append(
-        button('Export', async () => {
-          const data = store.export();
+        button('Copy keepsake', async () => {
+          box.value = store.export();
           try {
-            await navigator.clipboard.writeText(data);
-            const { toast } = await import('../ui/toast');
-            toast('Keepsake copied to clipboard.');
+            await navigator.clipboard.writeText(box.value);
+            status.textContent = 'Keepsake copied to clipboard.';
+            status.className = 'feedback good';
           } catch {
-            prompt('Copy your keepsake code:', data);
+            box.select();
+            status.textContent = 'Clipboard refused — the code is selected above; copy it by hand.';
+            status.className = 'feedback bad';
           }
         }),
-        button('Import', () => {
-          const data = prompt('Paste a keepsake code:');
-          if (!data) return;
+        button('Load from box', () => {
+          if (!box.value.trim()) {
+            status.textContent = 'Paste a keepsake code into the box first.';
+            status.className = 'feedback bad';
+            return;
+          }
           try {
-            store.import(data);
+            store.import(box.value);
+            status.textContent = 'Keepsake loaded.';
+            status.className = 'feedback good';
           } catch {
-            alert('Import failed: not a valid save.');
+            status.textContent = 'Import failed: not a valid save.';
+            status.className = 'feedback bad';
           }
         }),
-        button('Reset', () => {
-          if (!window.confirm('Start over? Your beads, stars, and honors will be gone.')) return;
+        button('Start over', () => {
           store.reset();
+          status.textContent = 'A new Thread begins.';
+          status.className = 'feedback good';
         }),
       );
-      body.appendChild(row);
+      body.append(row, box, status);
     }
     body.appendChild(button('Back', () => navigateHash(getReturnTo())));
   }

@@ -252,7 +252,11 @@ export const content: Content = {
       ],
       "mechanic": "mechanic.assayers-scale",
       "summary": "A scale that praises everything, and the one weight it cannot catch.",
-      "intro": "The Assayer sets a gleaming scale before you. \"It says everything is excellent,\" she says. \"I have stopped believing it. Find me a reading that could disagree, and then find the weight that is wrong.\""
+      "intro": "The Assayer sets a gleaming scale before you. \"It says everything is excellent,\" she says. \"I have stopped believing it. Find me a reading that could disagree, and then find the weight that is wrong.\"",
+      "engineRoom": {
+        "title": "Engine room: Verify, don’t assert",
+        "body": "A check that cannot fail is flattery — it proves nothing about anything it praises. Real evaluation needs an oracle: a known-good weight to measure against, and a verdict that is allowed to say no. A refusal test has a sibling success test, or it is decoration."
+      }
     },
     "world.aviary-of-whispers": {
       "id": "world.aviary-of-whispers",
@@ -267,7 +271,11 @@ export const content: Content = {
       ],
       "mechanic": "mechanic.aviary",
       "summary": "Three errands, three birds, and a rule that each bird carries one.",
-      "intro": "The Birdwright opens the aviary. \"Every bird is good at something,\" she says, \"and none is good at everything. Match them.\""
+      "intro": "The Birdwright opens the aviary. \"Every bird is good at something,\" she says, \"and none is good at everything. Match them.\"",
+      "engineRoom": {
+        "title": "Engine room: No best bird",
+        "body": "Small models answer fast and cheap; large ones reason further and cost more. The taxonomy is the choice: match the bird to the errand, or pay crane prices for wren work. One size fits all is how a bird ends up doing three jobs badly."
+      }
     },
     "world.blueprint-and-mason": {
       "id": "world.blueprint-and-mason",
@@ -282,7 +290,11 @@ export const content: Content = {
       ],
       "mechanic": "mechanic.blueprint",
       "summary": "A drawing, a mason, and the difference between a wish and a spec.",
-      "intro": "The Draughtswoman unrolls a drawing: a wall sixty bricks wide and twenty high. \"The Mason will build it,\" she says, \"but only from a spec she can measure. Give her a wish and she will stand there all day.\""
+      "intro": "The Draughtswoman unrolls a drawing: a wall sixty bricks wide and twenty high. \"The Mason will build it,\" she says, \"but only from a spec she can measure. Give her a wish and she will stand there all day.\"",
+      "engineRoom": {
+        "title": "Engine room: Contracts",
+        "body": "A spec is a contract between the drawing and the stone: numbers the Mason can lay rock against, then measure when done. Sturdy enough is not a number. Write what can be checked, then check it — that is the whole of spec-driven development."
+      }
     },
     "world.cartwrights-yard": {
       "id": "world.cartwrights-yard",
@@ -297,7 +309,11 @@ export const content: Content = {
       ],
       "mechanic": "mechanic.cartwright",
       "summary": "A cart, a horse, a market, and the rig that gets one to the other.",
-      "intro": "The Cartwright sets three empty slots before you. \"The horse is willing,\" she says. \"It is the rig that decides whether it arrives.\""
+      "intro": "The Cartwright sets three empty slots before you. \"The horse is willing,\" she says. \"It is the rig that decides whether it arrives.\"",
+      "engineRoom": {
+        "title": "Engine room: The loop, the limit, the check",
+        "body": "A harness is three promises: something that works, a budget for how long it may run, and a check that knows arrival when it sees it. The engine’s real 245-call loop had the first and neither of the others — which is why the horse is, theoretically, still running."
+      }
     },
     "world.commons-garden": {
       "id": "world.commons-garden",
@@ -312,7 +328,11 @@ export const content: Content = {
       ],
       "mechanic": "mechanic.commons-garden",
       "summary": "A garden of Beads planted by others, and a plot waiting for yours.",
-      "intro": "The Gardener waves you into the garden. Beads stand in neat rows, each one planted by someone who came before. \"Every one of these is a thing somebody chose to share,\" she says. \"There is a plot for yours.\""
+      "intro": "The Gardener waves you into the garden. Beads stand in neat rows, each one planted by someone who came before. \"Every one of these is a thing somebody chose to share,\" she says. \"There is a plot for yours.\"",
+      "engineRoom": {
+        "title": "Engine room: The commons grows by planting",
+        "body": "Every row here began as someone’s small contribution. Open work compounds: a Bead planted today is a tool a stranger uses tomorrow. The registry is a garden, not a warehouse — it grows because people add to it, and it stays alive because they tend it."
+      }
     },
     "world.gate-of-orders": {
       "id": "world.gate-of-orders",
@@ -327,7 +347,11 @@ export const content: Content = {
       ],
       "mechanic": "mechanic.gate-of-orders",
       "summary": "One gate, four travellers, and a set of orders that must survive every case.",
-      "intro": "The Gatekeeper taps a written order. \"I do not interpret,\" she says. \"I obey the words. Write them so the words mean what you meant.\""
+      "intro": "The Gatekeeper taps a written order. \"I do not interpret,\" she says. \"I obey the words. Write them so the words mean what you meant.\"",
+      "engineRoom": {
+        "title": "Engine room: Literal readers",
+        "body": "The gate does not know what you meant; it knows what you wrote. Every prompt has edge cases, and a literal reader finds all of them with perfect confidence. The engineering is in the wording: enumerate the cases, close the gaps, and assume ambiguity will be obeyed exactly."
+      }
     },
     "world.lantern-room": {
       "id": "world.lantern-room",
@@ -342,7 +366,11 @@ export const content: Content = {
       ],
       "mechanic": "mechanic.lantern",
       "summary": "A dark workshop, one lantern, and a question about what a model can see.",
-      "intro": "The Satyrn hands you a lantern in a dark workshop. \"Point it,\" it says. \"What you light is all I know.\""
+      "intro": "The Satyrn hands you a lantern in a dark workshop. \"Point it,\" it says. \"What you light is all I know.\"",
+      "engineRoom": {
+        "title": "Engine room: Attention is all you get",
+        "body": "A model reads only what is in its context — the lit circle. Everything outside it might as well not exist. Prompting, then, is mostly stage lighting: choose what stands in the circle and the answers change, even though the model never did."
+      }
     },
     "world.rain-gauge-terrace": {
       "id": "world.rain-gauge-terrace",
@@ -357,7 +385,11 @@ export const content: Content = {
       ],
       "mechanic": "mechanic.rain-gauge",
       "summary": "A terrace, a fixed cup, and more rain than the cup can hold.",
-      "intro": "The Waterwarden holds out a cup the size of a fist. \"Five drops, no more,\" she says. \"The chatter will tempt you. Keep only what the plants need.\""
+      "intro": "The Waterwarden holds out a cup the size of a fist. \"Five drops, no more,\" she says. \"The chatter will tempt you. Keep only what the plants need.\"",
+      "engineRoom": {
+        "title": "Engine room: Tokens and eviction",
+        "body": "Text is cut into tokens before a model ever sees it, and the cup — the context window — holds a fixed number. When new drops arrive, old ones spill out and are gone for good. Long conversations fail the same way: not from forgetting, but from never having had room."
+      }
     },
     "world.round-path": {
       "id": "world.round-path",
@@ -372,7 +404,11 @@ export const content: Content = {
       ],
       "mechanic": "mechanic.round-path",
       "summary": "A mule that has been walking the same small circle since midnight.",
-      "intro": "The Miller leads you to the yard. \"The work was done by dark,\" she says. \"But she has been going round since. I mind the circling more than the work.\""
+      "intro": "The Miller leads you to the yard. \"The work was done by dark,\" she says. \"But she has been going round since. I mind the circling more than the work.\"",
+      "engineRoom": {
+        "title": "Engine room: The 245-call loop",
+        "body": "The mule’s circle is a true story: an agent once called the same step 245 times, learning nothing, billed by the step. The fix was not a bigger mule but a loop-breaker — notice the repetition, keep the grain already ground, stop paying for the circling."
+      }
     },
     "world.well-and-pipe": {
       "id": "world.well-and-pipe",
@@ -387,7 +423,11 @@ export const content: Content = {
       ],
       "mechanic": "mechanic.well-and-pipe",
       "summary": "A well you own, a pipe to a distant lake, and a day's needs to route.",
-      "intro": "The Well-Digger shows you the well, then the pipe. \"The pipe is quicker,\" she says. \"But the water is not yours, and it carries your business down the valley. Choose what leaves the house.\""
+      "intro": "The Well-Digger shows you the well, then the pipe. \"The pipe is quicker,\" she says. \"But the water is not yours, and it carries your business down the valley. Choose what leaves the house.\"",
+      "engineRoom": {
+        "title": "Engine room: Own your water",
+        "body": "The pipe is someone else\u2019s lake: fast, vast, metered, and readable by whoever holds the tap. The well is bounded by what you own \u2014 private, yours, limited. Route by sensitivity: heavy public work down the pipe, private work from the well, never everything one way."
+      }
     }
   },
   "mechanics": {
@@ -502,7 +542,7 @@ export const content: Content = {
         ],
         "stars": {
           "three": 0,
-          "two": 2
+          "two": 1
         }
       }
     },
@@ -553,8 +593,8 @@ export const content: Content = {
           }
         ],
         "stars": {
-          "three": 0,
-          "two": 2
+          "three": 1,
+          "two": 3
         }
       }
     },
@@ -615,8 +655,8 @@ export const content: Content = {
           }
         ],
         "stars": {
-          "three": 0,
-          "two": 2
+          "three": 1,
+          "two": 3
         }
       }
     },
@@ -742,7 +782,7 @@ export const content: Content = {
         ],
         "stars": {
           "three": 0,
-          "two": 2
+          "two": 1
         }
       }
     },
@@ -869,7 +909,7 @@ export const content: Content = {
         ],
         "stars": {
           "three": 0,
-          "two": 2
+          "two": 1
         }
       }
     },
@@ -932,6 +972,19 @@ export const content: Content = {
       "condition": {
         "event": "mechanic.completed",
         "mechanic": "mechanic.assayers-scale"
+      }
+    },
+    "achievement.deep-snags": {
+      "id": "achievement.deep-snags",
+      "title": "Deep Snags",
+      "description": "Opened the engine rooms of all three Snags.",
+      "kind": "depth",
+      "condition": {
+        "all": [
+          { "event": "world.engineRoom.completed", "world": "world.round-path" },
+          { "event": "world.engineRoom.completed", "world": "world.gate-of-orders" },
+          { "event": "world.engineRoom.completed", "world": "world.assayers-scale" }
+        ]
       }
     },
     "achievement.first-light": {
@@ -1002,6 +1055,15 @@ export const content: Content = {
       "condition": {
         "event": "mechanic.completed",
         "mechanic": "mechanic.rain-gauge"
+      }
+    },
+    "achievement.tinkerer": {
+      "id": "achievement.tinkerer",
+      "title": "Tinkerer",
+      "description": "Looked beneath the surface of a Bead.",
+      "kind": "depth",
+      "condition": {
+        "event": "world.engineRoom.completed"
       }
     },
     "achievement.wanderer": {
@@ -1334,7 +1396,11 @@ export const content: Content = {
         "threadContinue": "Continue the Thread",
         "threadComplete": "You have walked the whole Thread.",
         "backToThread": "Back to the Thread",
-        "backToMap": "Back to the map"
+        "backToMap": "Back to the map",
+        "actCard.prologue": "The Moon: this is the Thread. Walk it bead by bead, and I will remember what you learn.",
+        "actCard.act1": "The Moon: here is the Making \u2014 what these systems are built from. Mind the cup, the birds, and the rig.",
+        "actCard.act2": "The Moon: here are the Snags \u2014 where it goes wrong. Ask every time: how would we know that is true?",
+        "actCard.act3": "The Moon: here are the Method and the Commons \u2014 how to build so others can check, and where to leave something behind."
       }
     }
   }
