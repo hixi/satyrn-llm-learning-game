@@ -123,7 +123,7 @@ export const ECHO_HELP: HelpPage = {
     {
       heading: 'Two kinds of model',
       lines: [
-        'The Old Songs is a counter: it tallies what followed what. Models you train can be counters or networks.',
+        'The Old Songs ships twice: as a counter that tallies what followed what, and as a trained network with the same corpus. Models you train can be either kind too.',
         'A network answers from learned weights. Its Memory crank blanks the older slot of its input, so at Memory 1 it sees an input it was rarely trained on and sounds less sure.',
         'Load each kind and ask both the same prompt: same question, different machinery underneath.',
       ],

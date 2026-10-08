@@ -53,7 +53,7 @@ taught it.
 
 **The Echo Hall — use a model.**
 
-1. Load a model on the stand: the built-in **Old Songs**, or any you trained.
+1. Load a model on the stand: the built-in **Old Songs** (it ships as *both* a counter and a trained network), or any model you trained.
 2. Play **your own prompt** on the ask keys (1–4 notes) — or press **Sample**
    to borrow the model's opening. The panel and the sheet update live:
    *expects "cat" 62%*.

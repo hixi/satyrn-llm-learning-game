@@ -5,7 +5,7 @@
 - `npm run check` — type check (`tsc --noEmit`) + production build. Run after any change.
 - `npm run dev` — dev server.
 - `node tools/gen-assets.mjs` — regenerates `public/assets/props/bell.glb` (commit its output).
-- `node tools/smoke.mjs` — headless full-playthrough test (54 checks, both halls). Requires a preview server:
+- `node tools/smoke.mjs` — headless full-playthrough test (55 checks, both halls). Requires a preview server:
   `npx vite preview --port 4599 --strictPort` running first. Uses `playwright-core` with the
   Chromium at `~/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome` (swiftshader flags for WebGL2).
 
@@ -20,6 +20,9 @@
   `TransitionModel` (counter, `src/game/music/model.ts`) and `MlpModel` (real
   backprop network, `src/game/music/mlp.ts`). `NetPanel` draws both
   (`presentModel`); trained network weights are stored on the shelf entry.
+- Two built-in presets ship in the registry: `preset` (Old Songs, counter) and
+  `preset-net` (Old Songs, trained network, rebuilt deterministically and
+  memoised). Both are always in the shelf/rack list.
 - The model registry lives in `src/game/music/store.ts`; models persist in
   `localStorage` under `satyrn25d.music.v2`, notebook drafts under
   `satyrn25d.notebook.v1`. Both halls share `NetPanel` for the network drawing.

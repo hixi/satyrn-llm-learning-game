@@ -73,7 +73,7 @@ check('routed to training', page.url().includes('#training.door'), page.url());
 p = await probe();
 check(
   'training starts empty',
-  p.source === 'preset' && p.models === 1 && p.notes === 0 && p.method === 'counter',
+  p.source === 'preset' && p.models === 2 && p.notes === 0 && p.method === 'counter',
   JSON.stringify(p),
 );
 check('training spawn can walk', await walk(0.6));
@@ -121,7 +121,7 @@ const finished = await until(async () => !(await probe()).busy, 10000);
 p = await probe();
 check(
   'counter model registered',
-  finished && p.trainedNow === true && p.models === 2 && p.model === 'Model 1' && p.size.includes('transition'),
+  finished && p.trainedNow === true && p.models === 3 && p.model === 'Model 1' && p.size.includes('transition'),
   JSON.stringify(p),
 );
 
@@ -151,7 +151,7 @@ await page.screenshot({ path: '/tmp/kilo/shot-12-network.png' });
 await page.keyboard.press('Escape');
 await page.waitForTimeout(300);
 p = await probe();
-check('network model registered', p.models === 3 && p.modelKind === 'network' && p.model === 'Model 2', JSON.stringify(p));
+check('network model registered', p.models === 4 && p.modelKind === 'network' && p.model === 'Model 2', JSON.stringify(p));
 
 check('keepsake prompt', (await interactAt(-6.0, -2.4, 0)) === 'Take the First Model', await prompt());
 await page.keyboard.press('KeyE');
@@ -177,7 +177,7 @@ await page.waitForTimeout(300);
 p = await probe();
 check(
   'echo loads your network',
-  p.modelName === 'Model 2' && p.kind === 'network' && p.panel === 'network' && p.models === 3,
+  p.modelName === 'Model 2' && p.kind === 'network' && p.panel === 'network' && p.models === 4,
   JSON.stringify(p),
 );
 check('no prompt yet', Array.isArray(p.promptNotes) && p.promptNotes.length === 0 && p.keysOpen === false, JSON.stringify(p));
@@ -186,6 +186,13 @@ check('no prompt yet', Array.isArray(p.promptNotes) && p.promptNotes.length === 
 await interactAt(-6.3, 2.6, 0);
 p = await probe();
 check('loads the old songs', p.modelName === 'The Old Songs' && p.kind === 'counter' && p.panel === 'counter', JSON.stringify(p));
+await interactAt(-6.3, 2.6, 0);
+p = await probe();
+check(
+  'old songs available as a network',
+  p.modelName === 'The Old Songs (network)' && p.kind === 'network' && p.panel === 'network',
+  JSON.stringify(p),
+);
 await interactAt(-6.3, 2.6, 0);
 p = await probe();
 check('loads the first counter', p.modelName === 'Model 1' && p.kind === 'counter' && p.panel === 'counter', JSON.stringify(p));

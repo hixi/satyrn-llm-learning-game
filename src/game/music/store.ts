@@ -6,6 +6,9 @@ import { SONGS, buildPretrained } from './songs';
 
 export const PRESET_ID = 'preset';
 export const PRESET_NAME = 'The Old Songs';
+export const PRESET_NET_ID = 'preset-net';
+export const PRESET_NET_NAME = 'The Old Songs (network)';
+const PRESET_NET_EPOCHS = 500;
 const KEY = 'satyrn25d.music.v2';
 const MAX_MODELS = 6;
 
@@ -61,20 +64,40 @@ export function presetPhrases(): number[][] {
   return SONGS.map((song) => song.notes.map((n) => n[0]));
 }
 
+let presetNetCache: MlpModel | null = null;
+
+/** The built-in songs as a trained network — same corpus, learned weights. */
+export function presetNetworkModel(): MlpModel {
+  if (!presetNetCache) {
+    const model = new MlpModel();
+    model.trainEpochs(presetPhrases(), PRESET_NET_EPOCHS);
+    presetNetCache = model;
+  }
+  return presetNetCache;
+}
+
 export function infoFor(id: string): ModelInfo {
   const s = read();
   const found = s.models.find((m) => m.id === id);
   if (found) return { ...found, source: 'trained' };
+  if (id === PRESET_NET_ID) {
+    return { id: PRESET_NET_ID, name: PRESET_NET_NAME, kind: 'network', phrases: presetPhrases(), source: 'preset' };
+  }
   return { id: PRESET_ID, name: PRESET_NAME, kind: 'counter', phrases: presetPhrases(), source: 'preset' };
 }
 
 export function listModels(): ModelInfo[] {
-  return [infoFor(PRESET_ID), ...read().models.map((m) => ({ ...m, source: 'trained' as const }))];
+  return [
+    infoFor(PRESET_ID),
+    infoFor(PRESET_NET_ID),
+    ...read().models.map((m) => ({ ...m, source: 'trained' as const })),
+  ];
 }
 
 export function selectedId(): string {
   const s = read();
-  return s.models.some((m) => m.id === s.selected) ? s.selected : PRESET_ID;
+  const known = s.selected === PRESET_NET_ID || s.models.some((m) => m.id === s.selected);
+  return known ? s.selected : PRESET_ID;
 }
 
 export function select(id: string): void {
@@ -86,6 +109,7 @@ export function select(id: string): void {
 /** Rebuild a runnable model from the shelf. */
 export function buildModel(id: string): MusicModel {
   const info = infoFor(id);
+  if (info.id === PRESET_NET_ID) return presetNetworkModel();
   if (info.source === 'preset') return buildPretrained();
   if (info.kind === 'network') {
     if (info.blob) return MlpModel.parse(info.blob);
