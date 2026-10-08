@@ -32,6 +32,15 @@ export const TRAINING_HELP: HelpPage = {
       ],
     },
     {
+      heading: 'Counter or network?',
+      lines: [
+        'The Method stand chooses what Train builds.',
+        'Counter: it tallies which note followed which. Instant, exact and easy to read — and it can do nothing but replay those tallies.',
+        'Network: a real neural network — 208 weights, learned by trial and error (gradients) over many passes through your notes. You watch the loss fall and the hidden layer light up.',
+        'With only one short phrase the loss drops near zero: it has memorised. Ask it anything outside that phrase and it flounders. That is overfitting — and it is why real language models need enormous amounts of varied text.',
+      ],
+    },
+    {
       heading: 'Reading the panel',
       lines: [
         'Left column: a note it just heard.',
@@ -109,6 +118,14 @@ export const ECHO_HELP: HelpPage = {
         'The stand cycles every model on the shelf. Ask the same prompt and you get a different singer, because the counts came from different phrases.',
         'Train a model on nonsense and it will answer with confident nonsense. Train it on more of a tune and it holds the tune.',
         'Nothing here is hidden: the drawn network is the whole model.',
+      ],
+    },
+    {
+      heading: 'Two kinds of model',
+      lines: [
+        'The Old Songs is a counter: it tallies what followed what. Models you train can be counters or networks.',
+        'A network answers from learned weights. Its Memory crank blanks the older slot of its input, so at Memory 1 it sees an input it was rarely trained on and sounds less sure.',
+        'Load each kind and ask both the same prompt: same question, different machinery underneath.',
       ],
     },
     {

@@ -41,11 +41,13 @@ taught it.
 
 1. Open the notebook (walk to the desk, press `E`) and play notes on the eight
    keys. Each key is a note *and* a word, so phrases read like little sentences.
-2. Press **Train**. The notebook folds away and the model reads your phrase
-   left to right: for every note it counts which note followed it. That
-   counting *is* the model, and the panel draws it — left column = "a note you
-   played", right column = "what it expects next", line thickness = how often
-   it followed. The caption narrates each step.
+2. Choose the **Method** on the stand: a *counter* (tallies which note followed
+   which) or a *network* (a real 208-weight neural network trained with
+   gradients). Then press **Train**. For a counter the notebook folds away and
+   you watch it count transitions; for a network you watch the hidden layer
+   light up and the **loss fall**. With one short phrase the loss drops near
+   zero — it has memorised, and asking it anything else flounders. That is
+   overfitting, shown live.
 3. It saves to your shelf as `Model 1`, `Model 2`, … Step 3 is to hear it in
    the Echo Hall.
 

@@ -8,6 +8,15 @@ export const DEGREE_MIDI = [60, 62, 64, 65, 67, 69, 71, 72];
 export const NOTE_NAMES = ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C'];
 export const WORDS = ['the', 'cat', 'sat', 'on', 'a', 'mat', 'and', 'then'];
 
+/** What both model types offer the halls. */
+export interface MusicModel {
+  readonly kind: 'counter' | 'network';
+  sizeLabel(): string;
+  distribution(context: number[], temperature: number): number[];
+  sample(context: number[], temperature: number, rng: () => number): number;
+  top(context: number[], temperature: number, n: number): { note: number; p: number }[];
+}
+
 export interface Song {
   id: string;
   name: string;
@@ -35,6 +44,7 @@ export function mulberry32(seed: number): () => number {
 }
 
 export class TransitionModel {
+  readonly kind = 'counter' as const;
   private tables: [Map<string, number[]>, Map<string, number[]>] = [new Map(), new Map()];
   private unigram: number[];
   private totalTransitions = 0;
@@ -95,6 +105,10 @@ export class TransitionModel {
 
   get transitions(): number {
     return this.totalTransitions;
+  }
+
+  sizeLabel(): string {
+    return `${this.totalTransitions} transitions`;
   }
 
   distribution(context: number[], temperature: number): number[] {

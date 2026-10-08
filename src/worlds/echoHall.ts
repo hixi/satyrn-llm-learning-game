@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Box2 } from '../engine/collisions';
 import { addBox, dynamicLabel, mat, palette } from '../engine/sceneKit';
-import { NetPanel } from '../game/music/netPanel';
+import { NetPanel, presentModel } from '../game/music/netPanel';
 import { DEGREE_MIDI, WORDS, mulberry32 } from '../game/music/model';
 import { buildModel, infoFor, listModels, select, selectedId } from '../game/music/store';
 import { ECHO_HELP } from '../game/help';
@@ -95,7 +95,7 @@ export function createEchoHall(ctx: WorldContext, spawnKey: string): World {
 
   function refreshLabels(): void {
     const info = infoFor(selectedModelId);
-    statusBoard.set(`Model: ${info.name} · ${model.transitions} transitions`);
+    statusBoard.set(`Model: ${info.name} · ${model.sizeLabel()}`);
     promptBoard.set(`Prompt: ${askNotes.length ? askNotes.map((d) => WORDS[d]).join(' ') : '—'}`);
     rackLabel.set(`Model: ${info.name}`);
     heatLabel.set(`Heat: ${TEMPS[tempIdx].name}`);
@@ -116,14 +116,9 @@ export function createEchoHall(ctx: WorldContext, spawnKey: string): World {
   }
 
   function showExpectation(): void {
-    if (askNotes.length === 0) {
-      const seed = samplePrompt();
-      net.show(model.distribution(seed.slice(-1), temperature()), seed[seed.length - 1], null);
-      expects = [];
-    } else {
-      expects = model.top(askNotes, temperature(), 3);
-      net.show(model.distribution(askNotes.slice(-memory()), temperature()), askNotes[askNotes.length - 1], null);
-    }
+    const context = (askNotes.length ? askNotes : samplePrompt()).slice(-memory());
+    expects = askNotes.length ? model.top(context, temperature(), 3) : [];
+    presentModel(net, model, context, temperature(), null);
     net.setLabelMode(labelIdx as 0 | 1 | 2);
     refreshLabels();
     renderAsker();
@@ -244,7 +239,7 @@ export function createEchoHall(ctx: WorldContext, spawnKey: string): World {
       select(next.id);
       model = buildModel(next.id);
       showExpectation();
-      ctx.toast(`Loaded "${next.name}"${next.source === 'trained' ? ' (trained by you)' : ''} — same prompt, different singer.`);
+      ctx.toast(`Loaded "${next.name}" — ${next.kind === 'network' ? 'a real network' : 'a counter'}${next.source === 'trained' ? ', trained by you' : ''}. Same prompt, different singer.`);
     },
   });
 
@@ -364,8 +359,10 @@ export function createEchoHall(ctx: WorldContext, spawnKey: string): World {
       playing: playback !== null,
       lastSeq,
       lastPrompt,
-      transitions: model.transitions,
-      ready: model.transitions > 0,
+      kind: model.kind,
+      panel: net.panelKind,
+      size: model.sizeLabel(),
+      ready: model.sizeLabel().length > 0,
     }),
     update(dt, t) {
       net.update(dt, t);
@@ -380,7 +377,7 @@ export function createEchoHall(ctx: WorldContext, spawnKey: string): World {
       if (idx !== pb.step && idx >= 0 && idx < pb.seq.length) {
         pb.step = idx;
         const st = pb.steps[Math.min(idx, pb.steps.length - 1)];
-        net.show(st.p, st.ctx[st.ctx.length - 1], st.note);
+        presentModel(net, model, st.ctx, temperature(), st.note);
         const gen = pb.seq.slice(pb.prompt.length);
         ctx.caption(
           `${infoFor(selectedModelId).name} · prompt ${pb.prompt.map((d) => WORDS[d]).join(' ')} ▸ ${gen

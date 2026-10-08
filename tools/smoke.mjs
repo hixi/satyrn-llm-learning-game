@@ -71,8 +71,13 @@ check('training door', (await interactAt(-7.3, -1.9, -Math.PI / 2)) === 'Enter t
 await page.waitForTimeout(1200);
 check('routed to training', page.url().includes('#training.door'), page.url());
 p = await probe();
-check('training starts empty', p.source === 'preset' && p.models === 1 && p.notes === 0, JSON.stringify(p));
+check(
+  'training starts empty',
+  p.source === 'preset' && p.models === 1 && p.notes === 0 && p.method === 'counter',
+  JSON.stringify(p),
+);
 check('training spawn can walk', await walk(0.6));
+
 check('training help', (await interactAt(-2.8, 2.9, 0)).startsWith('Help'), await prompt());
 let helpOpen = await page.evaluate(() => !document.getElementById('help').hidden);
 let helpScroll = await page.evaluate(() => {
@@ -90,7 +95,7 @@ check('help closes', await page.evaluate(() => document.getElementById('help').h
 const caption = await page.evaluate(() => document.getElementById('caption')?.textContent ?? '');
 check('notebook caption', caption.includes('Step 1') && caption.includes('notebook'), caption);
 
-// open the notebook and compose a phrase (with an undo)
+// compose a phrase, train the counter
 check('open notebook', (await interactAt(3.4, 1.9, 0, 700)) === '1 · Open the notebook', await prompt());
 const sheetVisible = await page.evaluate(() => !(document.querySelector('.composer')?.hasAttribute('hidden') ?? true));
 check('notebook visible', sheetVisible);
@@ -107,28 +112,47 @@ for (const key of ['Digit1', 'Digit5', 'Digit5', 'Digit6', 'Digit6', 'Digit5', '
 p = await probe();
 check('phrase composed', p.phrases[0] === 8 && p.notes === 8, JSON.stringify(p.phrases));
 
-// train
 await page.keyboard.press('Enter');
 await page.waitForTimeout(200);
 p = await probe();
-check('training runs', p.busy === true && p.total === 7, JSON.stringify({ busy: p.busy, total: p.total }));
+check('counter training runs', p.busy === true && p.trainKind === 'counter' && p.total === 7, JSON.stringify({ busy: p.busy, total: p.total }));
 await page.screenshot({ path: '/tmp/kilo/shot-8-training.png' });
 const finished = await until(async () => !(await probe()).busy, 10000);
 p = await probe();
-check('training finished', finished && p.trainedNow === true, JSON.stringify(p));
-check('model registered', p.models === 2 && p.model === 'Model 1' && p.transitions >= 7, JSON.stringify(p));
+check(
+  'counter model registered',
+  finished && p.trainedNow === true && p.models === 2 && p.model === 'Model 1' && p.size.includes('transition'),
+  JSON.stringify(p),
+);
 
-// while the notebook is open, world interaction is suppressed
 const routeBefore = page.url();
 await page.evaluate(() => window.__satyrn.teleport(0, 4.7, 0));
 await page.waitForTimeout(200);
 await page.keyboard.press('KeyE');
 await page.waitForTimeout(500);
 check('notebook blocks world interaction', page.url() === routeBefore, page.url());
-
-// close, take the keepsake, leave
 await page.keyboard.press('Escape');
 await page.waitForTimeout(300);
+
+// train a real network on the same phrase
+check('switch method', (await interactAt(2.8, 2.9, 0)) === 'Method: counter', await prompt());
+p = await probe();
+check('method is network', p.method === 'network', JSON.stringify(p.method));
+check('open notebook again', (await interactAt(3.4, 1.9, 0, 700)) === '1 · Open the notebook', await prompt());
+await page.keyboard.press('Enter');
+await page.waitForTimeout(400);
+p = await probe();
+check('network training runs', p.busy === true && p.trainKind === 'network', JSON.stringify({ busy: p.busy, epochs: p.epochs }));
+const netDone = await until(async () => !(await probe()).busy, 25000);
+p = await probe();
+check('network trained', netDone && p.epochs === 320, JSON.stringify({ epochs: p.epochs }));
+check('network overfits small data', typeof p.loss === 'number' && p.loss < 0.3, String(p.loss));
+await page.screenshot({ path: '/tmp/kilo/shot-12-network.png' });
+await page.keyboard.press('Escape');
+await page.waitForTimeout(300);
+p = await probe();
+check('network model registered', p.models === 3 && p.modelKind === 'network' && p.model === 'Model 2', JSON.stringify(p));
+
 check('keepsake prompt', (await interactAt(-6.0, -2.4, 0)) === 'Take the First Model', await prompt());
 await page.keyboard.press('KeyE');
 await page.waitForTimeout(400);
@@ -151,16 +175,23 @@ await page.keyboard.press('Escape');
 await page.waitForTimeout(300);
 
 p = await probe();
-check('echo loads your model', p.modelName === 'Model 1' && p.source === 'trained' && p.models === 2, JSON.stringify(p));
+check(
+  'echo loads your network',
+  p.modelName === 'Model 2' && p.kind === 'network' && p.panel === 'network' && p.models === 3,
+  JSON.stringify(p),
+);
 check('no prompt yet', Array.isArray(p.promptNotes) && p.promptNotes.length === 0 && p.keysOpen === false, JSON.stringify(p));
 
-// load a different model
+// the model stand cycles kinds; the drawn panel follows
 await interactAt(-6.3, 2.6, 0);
 p = await probe();
-check('loads the old songs', p.modelName === 'The Old Songs' && p.source === 'preset', JSON.stringify(p));
+check('loads the old songs', p.modelName === 'The Old Songs' && p.kind === 'counter' && p.panel === 'counter', JSON.stringify(p));
 await interactAt(-6.3, 2.6, 0);
 p = await probe();
-check('loads your model back', p.modelName === 'Model 1' && p.source === 'trained', JSON.stringify(p));
+check('loads the first counter', p.modelName === 'Model 1' && p.kind === 'counter' && p.panel === 'counter', JSON.stringify(p));
+await interactAt(-6.3, 2.6, 0);
+p = await probe();
+check('loads the network back', p.modelName === 'Model 2' && p.kind === 'network' && p.panel === 'network', JSON.stringify(p));
 
 // the prompt is the player's own input
 check('open keys', (await interactAt(-4.6, 1.7, 0, 700)) === 'Play a prompt (open the keys)', await prompt());
@@ -228,7 +259,7 @@ const models = await page.evaluate(() => {
   const raw = localStorage.getItem('satyrn25d.music.v2');
     return raw ? JSON.parse(raw).models.length : -1;
 });
-check('model persisted', models === 1, `models=${models}`);
+check('models persisted', models === 2, `models=${models}`);
 
 console.log(errors.length ? 'ERRORS:\n' + errors.join('\n') : 'NO PAGE ERRORS');
 await browser.close();
