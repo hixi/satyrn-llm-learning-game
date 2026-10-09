@@ -85,15 +85,14 @@ taught it.
      one tap away. **Pause** stops the flow, **pop this one** bursts without
      aiming, and **let the model play for you** hands over the bursting until
      you stop it and teach it more.
-  3. *The piano* — hum a tune; above the keys you watch how it thinks, then it
-     takes over. Modes: **by heart** (only "after this note, usually that one"),
-     **one** or **two hidden layers** (real networks trained on the spot),
-     **expanded** (three layers and a pause key, so rests are remembered too),
-     **learn a real song** (pick an old tune; it plays while it learns, so you
-     hear it go from nonsense to the song, on two or three layers), and
-     **words** (every key is a word — write a few and it writes the next ones
-     back; a chatbot, with a handful of words). **Keep going** plays on
-     indefinitely and a **stop** knob interrupts whenever you like.
+  3. *The piano* — three steps, shown as **1 · compose**, **2 · train**,
+     **3 · run the model**. Compose a tune on the keys (or pick an old melody),
+     press **train it** — and your tune plays, note by note, while it learns —
+     then **play / pause / stop / keep going** to run what it learned, with as
+     much time to plan as you like. Modes: **by heart**, **one** or **two
+     hidden layers**, **expanded** (three layers and a pause key, so rests are
+     remembered too), **learn a real song**, and **words** (every key is a word
+     — write a few and it writes the next ones back: a chatbot in miniature).
   4. *Where words live* — words settle into areas by the company they keep;
      tap one and watch which words it reaches for.
   5. *Sounding sure* — finish a familiar sentence, then one it has never
@@ -175,15 +174,14 @@ Nothing is hidden — the drawn network is the whole model.
      one tap away. **Pause** stops the flow, **pop this one** bursts without
      aiming, and **let the model play for you** hands over the bursting until
      you stop it and teach it more.
-  3. *The piano* — hum a tune; above the keys you watch how it thinks, then it
-     takes over. Modes: **by heart** (only "after this note, usually that one"),
-     **one** or **two hidden layers** (real networks trained on the spot),
-     **expanded** (three layers and a pause key, so rests are remembered too),
-     **learn a real song** (pick an old tune; it plays while it learns, so you
-     hear it go from nonsense to the song, on two or three layers), and
-     **words** (every key is a word — write a few and it writes the next ones
-     back; a chatbot, with a handful of words). **Keep going** plays on
-     indefinitely and a **stop** knob interrupts whenever you like.
+  3. *The piano* — three steps, shown as **1 · compose**, **2 · train**,
+     **3 · run the model**. Compose a tune on the keys (or pick an old melody),
+     press **train it** — and your tune plays, note by note, while it learns —
+     then **play / pause / stop / keep going** to run what it learned, with as
+     much time to plan as you like. Modes: **by heart**, **one** or **two
+     hidden layers**, **expanded** (three layers and a pause key, so rests are
+     remembered too), **learn a real song**, and **words** (every key is a word
+     — write a few and it writes the next ones back: a chatbot in miniature).
   4. *Where words live* — words settle into areas by the company they keep;
      tap one and watch which words it reaches for.
   5. *Sounding sure* — finish a familiar sentence, then one it has never

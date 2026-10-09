@@ -5,7 +5,7 @@
 - `npm run check` — type check (`tsc --noEmit`) + production build. Run after any change.
 - `npm run dev` — dev server.
 - `node tools/gen-assets.mjs` — regenerates `public/assets/props/bell.glb` (commit its output).
-- `node tools/smoke.mjs` — headless full-playthrough test (120 checks, all halls and expositions). Requires a preview server:
+- `node tools/smoke.mjs` — headless full-playthrough test (130 checks, all halls and expositions). Requires a preview server:
   `npx vite preview --port 4599 --strictPort` running first. Uses `playwright-core` with the
   Chromium at `~/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome` (swiftshader flags for WebGL2).
 

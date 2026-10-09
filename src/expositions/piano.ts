@@ -57,7 +57,7 @@ export const piano: Exposition = {
   title: 'The piano',
   build(root, say, deps: ExpoDeps) {
     let notes: number[] = [];
-    let phase: 'listen' | 'continuing' | 'idle' = 'listen';
+    let phase: 'listen' | 'training' | 'ready' | 'continuing' | 'idle' = 'listen';
     let mode: Mode = 'heart';
     let keepGoing = false;
     let showNumbers = false;
@@ -69,11 +69,9 @@ export const piano: Exposition = {
     let continueCount = 0;
     let songIdx = 0;
     let songLayers = 2;
-    let learning = false;
-    let learnPass = 0;
-    let learnSample: number[] = [];
-    let learnIdx = 0;
-    let learnModel: MlpModel | null = null;
+    let ready = false;
+    let playing = false;
+    let seq: number[] = [];
     let playedTotal = 0;
 
     const counts: number[][] = Array.from({ length: 8 }, () => new Array(8).fill(0));
@@ -118,6 +116,21 @@ export const piano: Exposition = {
 
     const controls = document.createElement('div');
     controls.className = 'piano-controls';
+    const stepRow = document.createElement('div');
+    stepRow.className = 'piano-steps';
+    const stepEls: HTMLElement[] = [];
+    for (const [id, label] of [
+      ['compose', '1 · compose'],
+      ['train', '2 · train'],
+      ['run', '3 · run the model'],
+    ] as [string, string][]) {
+      const el = document.createElement('span');
+      el.className = 'piano-step';
+      el.dataset.step = id;
+      el.textContent = label;
+      stepRow.appendChild(el);
+      stepEls.push(el);
+    }
     const modeRow = document.createElement('div');
     modeRow.className = 'expo-row';
     const songRow = document.createElement('div');
@@ -129,14 +142,14 @@ export const piano: Exposition = {
       b.className = 'ui-btn piano-song';
       b.dataset.song = song.id;
       b.textContent = song.name;
-      b.addEventListener('click', () => startSong(i));
+      b.addEventListener('click', () => loadSong(i));
       songList.appendChild(b);
     });
     const layersBtn = document.createElement('button');
     layersBtn.className = 'ui-btn piano-layers';
     layersBtn.addEventListener('click', () => {
       songLayers = songLayers === 2 ? 3 : 2;
-      if (mode === 'song') startSong(songIdx);
+      if (mode === 'song') loadSong(songIdx);
       else renderModes();
     });
     const hearBtn = document.createElement('button');
@@ -146,6 +159,11 @@ export const piano: Exposition = {
     songRow.append(songList, layersBtn, hearBtn);
     const runRow = document.createElement('div');
     runRow.className = 'expo-row';
+    const trainBtn = document.createElement('button');
+    trainBtn.className = 'ui-btn piano-train primary';
+    trainBtn.textContent = 'train it';
+    const playPause = document.createElement('button');
+    playPause.className = 'ui-btn piano-playpause';
     const forever = document.createElement('button');
     forever.className = 'ui-btn piano-forever';
     const stop = document.createElement('button');
@@ -153,8 +171,8 @@ export const piano: Exposition = {
     stop.textContent = 'stop';
     const numbers = document.createElement('button');
     numbers.className = 'ui-btn piano-numbers';
-    runRow.append(forever, stop, numbers);
-    controls.append(modeRow, songRow, runRow);
+    runRow.append(trainBtn, playPause, forever, stop, numbers);
+    controls.append(stepRow, modeRow, songRow, runRow);
 
     root.append(canvas, keys, ribbon, controls);
 
@@ -186,9 +204,15 @@ export const piano: Exposition = {
       layersBtn.textContent = `layers: ${songLayers}`;
       root.dataset.mode = mode;
       root.dataset.song = SONGS[songIdx].id;
-      root.dataset.learning = learning ? 'on' : 'off';
-      root.dataset.pass = String(learnPass);
+      root.dataset.ready = ready ? 'on' : 'off';
+      root.dataset.playing = playing ? 'on' : 'off';
       root.dataset.played = String(playedTotal);
+      playPause.textContent = playing ? 'pause' : 'play';
+      const step = phase === 'listen' ? 'compose' : phase === 'training' ? 'train' : 'run';
+      stepEls.forEach((el) => el.classList.toggle('on', el.dataset.step === step));
+      root.dataset.step = step;
+      trainBtn.disabled = phase !== 'listen' || notes.length < 3;
+      playPause.disabled = phase === 'listen' || phase === 'training' || !model;
       if (mode === 'song') root.dataset.depth = String(songLayers);
       root.dataset.vocab = String(tokensOf());
       root.dataset.noise = mode === 'heart' ? 'off' : 'on';
@@ -199,9 +223,9 @@ export const piano: Exposition = {
     function setMode(next: Mode): void {
       stopTimers();
       playedTotal = 0;
-      learning = false;
-      learnSample = [];
-      learnIdx = 0;
+      ready = false;
+      playing = false;
+      seq = [];
       mode = next;
       notes = [];
       for (const row of counts) row.fill(0);
@@ -347,6 +371,7 @@ export const piano: Exposition = {
 
     function play(token: number, learn: boolean, dur = 0.55): void {
       playedTotal++;
+      root.dataset.played = String(playedTotal);
       const el = mode === 'words' ? wordEls[token] : token < NOTE_NAMES.length ? keyEls[token] : null;
       if (token < DEGREE_MIDI.length) deps.playNote(DEGREE_MIDI[token], 0, dur, 0.85);
       if (el) {
@@ -376,14 +401,18 @@ export const piano: Exposition = {
     }
 
     function hit(token: number): void {
-      if (mode === 'song') return;
-      if (phase === 'continuing') return;
+      if (mode === 'song' || phase === 'training') return;
       if (token === REST && mode !== 'expanded') return;
-      if (phase === 'idle') {
+      ready = false;
+      if (phase !== 'listen') {
+        stopTimers();
         notes = [];
+        playing = false;
+        model = null;
         for (const row of counts) row.fill(0);
         prev = null;
         flash = null;
+        setPhase('listen');
       }
       notes.push(token);
       play(token, true, token === REST ? 0.2 : 0.55);
@@ -391,39 +420,82 @@ export const piano: Exposition = {
       setPhase('listen');
       say(`${notes.length} step${notes.length === 1 ? '' : 's'} heard. Keep going, or stop — ${mode === 'heart' ? 'the lines fill in' : 'the layers light up'} as it listens.`);
       if (pauseTimer) window.clearTimeout(pauseTimer);
-      pauseTimer = window.setTimeout(takeOver, PAUSE_MS);
+      pauseTimer = window.setTimeout(() => {
+        if (phase === 'listen' && notes.length >= 3) say('When the tune sounds right, press “train it”.');
+      }, PAUSE_MS);
     }
 
-    function takeOver(): void {
+    function trainIt(): void {
+      if (phase === 'training') return;
       if (notes.length < 3) {
-        say('Play a few more notes — it needs a little of your tune to learn from.');
+        say('Play a few more notes first — it needs something to learn from.');
         return;
       }
+      stopTimers();
+      playing = false;
+      ready = false;
       const V = tokensOf();
+      let total = 0;
       if (mode === 'heart') {
         const counter = new TransitionModel();
         counter.train(notes.filter((t) => t < 8));
         model = counter;
+        total = 1;
       } else {
-        const mlp = new MlpModel({ vocab: V, context: 2, hidden: hiddenFor(mode) });
-        mlp.trainEpochs([notes], epochsFor(mode), 0.3);
-        model = mlp;
+        const hidden = mode === 'song' ? Array.from({ length: songLayers }, () => 8) : hiddenFor(mode);
+        model = new MlpModel({ vocab: V, context: 2, hidden });
+        total = epochsFor(mode);
       }
-      continueCount = 0;
-      setPhase('continuing');
+      let trained = mode === 'heart' ? 1 : 0;
+      let tuneIdx = 0;
+      const chunk = Math.max(1, Math.ceil(total / 12));
+      setPhase('training');
+      renderModes();
+      say('Training — and the tune you gave it plays, note by note, while it learns.');
+      playTimer = window.setInterval(() => {
+        if (tuneIdx < notes.length) {
+          play(notes[tuneIdx++], false, 0.4);
+          renderRibbon();
+        }
+        if (model instanceof MlpModel && trained < total) {
+          const c = Math.min(chunk, total - trained);
+          model.trainEpochs([notes], c, 0.3);
+          trained += c;
+          draw();
+          say(`Training ${Math.round((trained / total) * 100)}% — that is your tune going in.`);
+        }
+        if (tuneIdx >= notes.length && trained >= total) {
+          stopTimers();
+          ready = true;
+          setPhase('ready');
+          renderModes();
+          say('Trained. Press play when you want to run it — and pause whenever you like.');
+        }
+      }, beatMs());
+      renderModes();
+    }
+
+    function startPlaying(): void {
+      if (!model) return;
+      if (continueCount === 0) seq = notes.slice(-2);
       const rng = mulberry32(7 + notes.length);
-      const seq = notes.slice(-2);
+      playing = true;
+      setPhase('continuing');
       const modeLine =
         mode === 'heart'
           ? 'from the pairs it noticed'
           : mode === 'words'
             ? 'word by word, with two big hidden layers'
-            : mode === 'expanded'
-              ? `through three hidden layers, pauses and all`
-              : `through ${mode === 'layer' ? 'a hidden layer' : 'two hidden layers'}`;
-      say(`Listen. It is finishing your tune ${modeLine}.`);
-      playTimer = window.setInterval(() => {
-        const context = seq.slice(-2);
+            : mode === 'song'
+              ? `from “${SONGS[songIdx].name}”`
+              : mode === 'expanded'
+                ? 'through three hidden layers, pauses and all'
+                : `through ${mode === 'layer' ? 'a hidden layer' : 'two hidden layers'}`;
+      say(`Playing. It is finishing your tune ${modeLine}.`);
+      if (playTimer === 0) {
+        playTimer = window.setInterval(() => {
+          if (!playing) return;
+          const context = seq.slice(-2);
         let next: number;
         if (mode === 'heart' || !(model instanceof MlpModel)) {
           next = model!.sample(context, 0.8, rng);
@@ -441,77 +513,109 @@ export const piano: Exposition = {
             }
           }
         }
-        seq.push(next);
-        notes.push(next);
-        play(next, false, next === REST ? 0.2 : 0.5);
-        renderRibbon();
-        continueCount++;
-        if (!keepGoing && continueCount >= CONTINUE_NOTES) stopContinuing(true);
-      }, beatMs());
+          seq.push(next);
+          notes.push(next);
+          play(next, false, next === REST ? 0.2 : 0.5);
+          renderRibbon();
+          continueCount++;
+          if (!keepGoing && continueCount >= CONTINUE_NOTES) stopContinuing(true);
+        }, beatMs());
+      }
       renderModes();
+    }
+
+    function togglePlay(): void {
+      if (phase === 'continuing' && playTimer !== 0) {
+        playing = !playing;
+        say(playing ? 'Playing again.' : 'Paused — plan as long as you like.');
+        renderModes();
+        return;
+      }
+      startPlaying();
     }
 
     const beatMs = () => Math.max(80, 360 / timeScale());
 
-    function sampleTokens(m: MlpModel, seed: number[], count: number, temp: number): number[] {
-      const out = seed.slice();
-      const rng = mulberry32(11 + learnPass * 7 + count);
-      for (let i = 0; i < count; i++) {
-        const p = m.distribution(out.slice(-2), temp);
-        const noisy = p.map((v) => (1 - NOISE) * v + NOISE / p.length);
-        let r = rng();
-        let tok = noisy.length - 1;
-        for (let k = 0; k < noisy.length; k++) {
-          r -= noisy[k];
-          if (r <= 0) {
-            tok = k;
-            break;
-          }
-        }
-        out.push(tok);
+    function stopContinuing(finished: boolean): void {
+      stopTimers();
+      playing = false;
+      continueCount = 0;
+      seq = [];
+      setPhase('idle');
+      renderModes();
+      if (finished) {
+        say(
+          mode === 'words'
+            ? 'It never learned grammar — it learned which word tends to follow which. That is what a chatbot does, at a size we cannot draw.'
+            : mode === 'expanded'
+              ? 'That was not your tune replayed — three layers, and it remembered the gaps as well as the notes. A chatbot does this with words.'
+              : 'That was not your tune replayed. It never heard a tune before yours — it learned what tends to come next. A chatbot does exactly this with words.',
+        );
+      } else {
+        say('Stopped. Play again whenever you like, or switch how it thinks.');
       }
-      return out.slice(seed.length);
     }
 
-    function startSong(idx: number): void {
+    const onKey = (e: KeyboardEvent) => {
+      const m = /^(?:Digit|Numpad)([1-8])$/.exec(e.code);
+      if (m) {
+        e.preventDefault();
+        hit(Number(m[1]) - 1);
+      } else if (e.code === 'Digit0' || e.code === 'KeyP') {
+        e.preventDefault();
+        hit(REST);
+      } else if (e.code === 'Space') {
+        e.preventDefault();
+        togglePlay();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    trainBtn.addEventListener('click', () => trainIt());
+    playPause.addEventListener('click', () => togglePlay());
+    forever.addEventListener('click', () => {
+      keepGoing = !keepGoing;
+      renderModes();
+      say(keepGoing ? 'It will keep going until you stop it.' : 'It will stop after eight steps.');
+    });
+    stop.addEventListener('click', () => {
+      if (phase === 'training') {
+        stopTimers();
+        setPhase('listen');
+        renderModes();
+        say('Training cancelled — your tune is still there. Press “train it” to try again.');
+        return;
+      }
+      stopContinuing(false);
+    });
+    numbers.addEventListener('click', () => {
+      showNumbers = !showNumbers;
+      renderModes();
+      draw();
+      say(showNumbers ? 'Numbers on: every value it holds, and the chance it gives each next step.' : 'Numbers off.');
+    });
+
+    function loadSong(idx: number): void {
       stopTimers();
       songIdx = idx;
-      learnModel = new MlpModel({ vocab: 8, context: 2, hidden: Array.from({ length: songLayers }, () => 8) });
-      model = learnModel;
-      learnPass = 0;
-      learnSample = [];
-      learnIdx = 0;
-      learning = true;
-      notes = [];
+      notes = SONGS[idx].notes.map((n) => n[0]);
       prev = null;
       flash = null;
-      setPhase('continuing');
-      setModeButtons();
-      say(`Learning “${SONGS[idx].name}” on ${songLayers} hidden layers. Listen — it plays while it learns.`);
-      playTimer = window.setInterval(songTick, beatMs());
-    }
-
-    function songTick(): void {
-      if (!learning || !(learnModel instanceof MlpModel)) return;
-      if (learnIdx >= learnSample.length) {
-        learnModel.trainEpochs([SONGS[songIdx].notes.map((n) => n[0])], 40, 0.3);
-        learnPass++;
-        learnSample = sampleTokens(learnModel, SONGS[songIdx].notes.map((n) => n[0]).slice(0, 2), 12, 0.6);
-        learnIdx = 0;
-        notes = [];
-        if (learnPass === 8) say('It knows the tune now — and it goes on playing what it learned until you stop it.');
-      }
-      const tok = learnSample[learnIdx++];
-      notes.push(tok);
-      play(tok, false);
+      model = null;
+      ready = false;
+      playing = false;
+      continueCount = 0;
+      setPhase('listen');
       renderRibbon();
-      draw();
       renderModes();
+      draw();
+      say(`Loaded “${SONGS[idx].name}” as the tune to learn. Training it the usual way…`);
+      trainIt();
     }
 
     function playRealSong(): void {
       stopTimers();
-      learning = false;
+      playing = true;
+      ready = false;
       const song = SONGS[songIdx];
       const tokens = song.notes.map((n) => n[0]);
       let i = 0;
@@ -530,61 +634,8 @@ export const piano: Exposition = {
         renderRibbon();
         draw();
       }, beatMs());
-    }
-
-    function setModeButtons(): void {
-      for (const b of Array.from(modeRow.querySelectorAll('.piano-mode'))) {
-        const el = b as HTMLButtonElement;
-        el.classList.toggle('on', el.dataset.mode === mode);
-      }
-    }
-
-    function stopContinuing(finished: boolean): void {
-      stopTimers();
-      learning = false;
-      learnSample = [];
-      learnIdx = 0;
-      setPhase('idle');
       renderModes();
-      if (finished) {
-        say(
-          mode === 'words'
-            ? 'It never learned grammar — it learned which word tends to follow which. That is what a chatbot does, at a size we cannot draw.'
-            : mode === 'expanded'
-            ? 'That was not your tune replayed — three layers, and it remembered the gaps as well as the notes. A chatbot does this with words.'
-            : 'That was not your tune replayed. It never heard a tune before yours — it learned what tends to come next. A chatbot does exactly this with words.',
-        );
-      } else {
-        say('Stopped. Play again, or switch how it thinks.');
-      }
     }
-
-    const onKey = (e: KeyboardEvent) => {
-      const m = /^(?:Digit|Numpad)([1-8])$/.exec(e.code);
-      if (m) {
-        e.preventDefault();
-        hit(Number(m[1]) - 1);
-      } else if (e.code === 'Digit0' || e.code === 'KeyP') {
-        e.preventDefault();
-        hit(REST);
-      } else if (e.code === 'Space' && playTimer !== 0) {
-        e.preventDefault();
-        stopContinuing(false);
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    forever.addEventListener('click', () => {
-      keepGoing = !keepGoing;
-      renderModes();
-      say(keepGoing ? 'It will keep going until you stop it.' : 'It will stop after eight steps.');
-    });
-    stop.addEventListener('click', () => stopContinuing(false));
-    numbers.addEventListener('click', () => {
-      showNumbers = !showNumbers;
-      renderModes();
-      draw();
-      say(showNumbers ? 'Numbers on: every value it holds, and the chance it gives each next step.' : 'Numbers off.');
-    });
 
     setPhase('listen');
     renderRibbon();
