@@ -299,7 +299,7 @@ await page.waitForTimeout(1200);
 check('routed to history', page.url().includes('#history.door'), page.url());
 check('hall spawn can walk', await walk(0.6));
 
-check('focus does it fit', (await interactAt(-5.4, -0.5, 0)) === 'Use Does it fit?', await prompt());
+check('focus does it fit', (await interactAt(-6.0, -0.5, 0)) === 'Use Does it fit?', await prompt());
 await page.waitForTimeout(500);
 check('the perceptron sits on top', (await page.$('.fit-model')) !== null, 'no canvas');
 const fitSay = await page.evaluate(() => document.getElementById('expo-say')?.textContent ?? '');
@@ -362,7 +362,83 @@ await page.keyboard.press('Escape');
 await page.waitForTimeout(400);
 check('step back to the hall', await page.evaluate(() => document.getElementById('expo').hidden), 'still open');
 
-check('focus the piano', (await interactAt(-1.8, -0.5, 0)) === 'Use The piano', await prompt());
+check('focus the balloon study', (await interactAt(-3.0, -0.5, 0)) === 'Use The balloon study', await prompt());
+await page.waitForTimeout(600);
+const diagramShown = await page.evaluate(() => {
+  const d = document.querySelector('.balloons-diagram');
+  const c = document.querySelector('.bm-row');
+  return { diagram: !!d && !d.hidden, cards: !!c && !c.hidden, model: document.querySelector('#expo-stage')?.dataset.model };
+});
+check('the actual machine is drawn: inputs into five units', diagramShown.diagram && !diagramShown.cards && diagramShown.model === 'diagram', JSON.stringify(diagramShown));
+await page.click('.balloons-show');
+await page.waitForTimeout(250);
+const numbersShown = await page.evaluate(() => {
+  const d = document.querySelector('.balloons-diagram');
+  const c = document.querySelector('.bm-row');
+  return { diagram: !!d && !d.hidden, cards: !!c && !c.hidden, model: document.querySelector('#expo-stage')?.dataset.model };
+});
+check('the numbers are one tap away', numbersShown.cards && !numbersShown.diagram && numbersShown.model === 'numbers', JSON.stringify(numbersShown));
+const cardCount = await page.evaluate(() => document.querySelectorAll('.bm-card').length);
+check('the five machines are on screen', cardCount === 5, `cards=${cardCount}`);
+const balloonSay = await page.evaluate(() => document.getElementById('expo-say')?.textContent ?? '');
+check(
+  'one plain line, no jargon',
+  balloonSay.length > 0 && !/weight|bias|gradient|vector|threshold|epoch|probability/i.test(balloonSay),
+  balloonSay,
+);
+const balloonAt = () => page.evaluate(() => document.querySelector('#expo-stage')?.dataset.balloons ?? 'none');
+await until(async () => (await balloonAt()) !== 'none', 12000);
+await page.click('.balloons-pause');
+await page.waitForTimeout(200);
+const frozenA = await balloonAt();
+await page.waitForTimeout(1200);
+const frozenB = await balloonAt();
+check('pause stops the balloon flow', frozenA.split(',')[1] === frozenB.split(',')[1], `${frozenA} vs ${frozenB}`);
+await page.click('.balloons-pause');
+await page.waitForTimeout(600);
+const upCol = Number((await balloonAt()).split(',')[2]);
+await page.click('.balloons-pop');
+await page.waitForTimeout(600);
+const popped = await page.evaluate((c) => {
+  const st = document.querySelector('#expo-stage');
+  const val = document.querySelector(`.bm-card[data-colour="${c}"] .bm-value`)?.textContent ?? '';
+  return { bursts: Number(st?.dataset.bursts ?? 0), val };
+}, upCol);
+check('the pop button bursts the one that is up', popped.bursts >= 1, JSON.stringify(popped));
+check('its machine turns against that colour, on screen', popped.val.startsWith('-'), popped.val);
+await until(async () => (await balloonAt()) !== 'none', 12000);
+const keepCol = Number((await balloonAt()).split(',')[2]);
+const keptBefore = Number((await page.evaluate(() => document.querySelector('#expo-stage')?.dataset.kept ?? '')).split(',')[keepCol]);
+await until(
+  async () => Number((await page.evaluate(() => document.querySelector('#expo-stage')?.dataset.kept ?? '')).split(',')[keepCol]) > keptBefore,
+  14000,
+);
+check('letting one rise keeps it for that colour', true, '');
+await page.click('.balloons-play');
+await page.waitForTimeout(700);
+check('the model plays for you', (await page.evaluate(() => document.querySelector('#expo-stage')?.dataset.auto)) === 'on', 'not on');
+await page.waitForTimeout(7500);
+const balloonSolo = await page.evaluate(() => {
+  const st = document.querySelector('#expo-stage');
+  return {
+    auto: st?.dataset.auto,
+    bursts: Number(st?.dataset.itsBursts ?? 0),
+    kept: (st?.dataset.itsKept ?? '').split(',').reduce((a, b) => a + Number(b), 0),
+  };
+});
+check('it bursts and keeps by itself', balloonSolo.auto === 'on' && balloonSolo.bursts + balloonSolo.kept >= 2, JSON.stringify(balloonSolo));
+await page.screenshot({ path: '/tmp/kilo/shot-13-balloons.png' });
+await page.click('.balloons-play');
+await page.waitForTimeout(500);
+check('you can stop it and take over', (await page.evaluate(() => document.querySelector('#expo-stage')?.dataset.auto)) === 'off', 'still on');
+await page.click('.balloons-again');
+await page.waitForTimeout(400);
+const wiped = await page.evaluate(() => document.querySelector('#expo-stage')?.dataset.colourWeights ?? '');
+check('start again forgets what it learned', /^0\.00(,0\.00){4}$/.test(wiped), wiped);
+await page.keyboard.press('Escape');
+await page.waitForTimeout(400);
+
+check('focus the piano', (await interactAt(0, -0.5, 0)) === 'Use The piano', await prompt());
 await page.waitForTimeout(500);
 check('the model is shown above the keys', (await page.$('.piano-model')) !== null, 'no canvas');
 const keyHandles = await page.$$('.piano-key');
@@ -443,7 +519,7 @@ check('the stop knob interrupts immediately', stopped === 'idle', stopped);
 await page.keyboard.press('Escape');
 await page.waitForTimeout(400);
 // the confident answer: sounds right, can still be wrong
-check('focus the confident answer', (await interactAt(5.4, -0.5, 0)) === 'Use Sounding sure', await prompt());
+check('focus the confident answer', (await interactAt(6.0, -0.5, 0)) === 'Use Sounding sure', await prompt());
 await page.waitForTimeout(500);
 const heardSlot = await page.$('.sentence-slot');
 await heardSlot.click();

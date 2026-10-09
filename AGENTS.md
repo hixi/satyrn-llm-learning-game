@@ -5,7 +5,7 @@
 - `npm run check` — type check (`tsc --noEmit`) + production build. Run after any change.
 - `npm run dev` — dev server.
 - `node tools/gen-assets.mjs` — regenerates `public/assets/props/bell.glb` (commit its output).
-- `node tools/smoke.mjs` — headless full-playthrough test (93 checks, all halls and expositions). Requires a preview server:
+- `node tools/smoke.mjs` — headless full-playthrough test (106 checks, all halls and expositions). Requires a preview server:
   `npx vite preview --port 4599 --strictPort` running first. Uses `playwright-core` with the
   Chromium at `~/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome` (swiftshader flags for WebGL2).
 
@@ -13,7 +13,7 @@
 
 - Worlds live in `src/worlds/` and implement the `World` contract in `src/game/world.ts`
   (`interactables`, `colliders`, `bounds`, optional fixed `cam`, `update`, `dispose`).
-- Expositions live in `src/expositions/*` (does-it-fit, piano, words,
+- Expositions live in `src/expositions/*` (does-it-fit, balloon study, piano, words,
   sounding sure); each draws its own canvas/DOM and gets an `ExpoDeps.playNote`
   for sound. No jargon on screen: the visible line is plain English.
 - The Hall of History is walkable but its exhibits are direct: plinths call

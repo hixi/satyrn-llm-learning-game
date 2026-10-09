@@ -283,6 +283,27 @@ body.touch #touch { display: block; }
 .piano-controls .ui-btn.on { background: rgba(217,164,65,.32); border-color: rgba(217,164,65,.85); }
 .piano-stop:disabled { opacity: .35; }
 
+/* The balloon study: the model, on screen */
+.bm-row { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .5rem; }
+.bm-card { flex: 1 1 8.5rem; min-width: 0; background: rgba(244,236,216,.05); border: 1px solid rgba(244,236,216,.14); border-radius: 8px; padding: .35rem .45rem; }
+.bm-head { display: flex; align-items: center; gap: .35rem; font-size: .82rem; margin-bottom: .3rem; }
+.bm-dot { width: .7rem; height: .7rem; border-radius: 50%; display: inline-block; }
+.bm-call { margin-left: auto; font-size: .72rem; color: #9fd69f; }
+.bm-call.burst { color: #e6827a; }
+.bm-line { display: flex; align-items: center; gap: .3rem; margin: .14rem 0; }
+.bm-label { font-size: .58rem; opacity: .65; width: 4.8rem; flex: none; }
+.bm-track { flex: 1; min-width: 1rem; height: .42rem; background: rgba(244,236,216,.14); border-radius: 3px; overflow: hidden; }
+.bm-fill { display: block; height: 100%; width: 0; background: #d9a441; }
+.bm-value { font-size: .6rem; width: 1.9rem; text-align: right; flex: none; opacity: .85; }
+
+.balloons-diagram { width: 100%; max-width: 660px; height: auto; margin: 0 auto .5rem; display: block; border-radius: 10px; border: 1px solid rgba(244,236,216,.14); }
+.balloons-model { width: 100%; max-width: 660px; height: auto; margin: 0 auto; display: block; border-radius: 10px; border: 1px solid rgba(244,236,216,.14); touch-action: none; }
+.balloons-controls { margin-top: .7rem; }
+.balloons-call { font-size: 1.05rem; margin-bottom: .5rem; }
+.balloons-controls .ui-btn { font-size: 1rem; padding: .65rem 1rem; }
+.balloons-controls .ui-btn.on { background: rgba(217,164,65,.3); border-color: rgba(217,164,65,.85); }
+.balloons-score { margin-top: .6rem; font-size: .9rem; opacity: .85; }
+
 /* Does it fit? */
 .fit-model { width: 100%; max-width: 640px; height: auto; margin: 0 auto; display: block; border-radius: 10px; border: 1px solid rgba(244,236,216,.14); touch-action: none; }
 .fit-controls { margin-top: .7rem; }

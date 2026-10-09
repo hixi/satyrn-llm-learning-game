@@ -4,10 +4,11 @@ import { addBox, dynamicLabel, mat, palette } from '../engine/sceneKit';
 import { Interactable, World, WorldContext } from '../game/world';
 
 const EXHIBITS: { id: string; name: string; x: number; color: number }[] = [
-  { id: 'fit', name: 'Does it fit?', x: -5.4, color: 0xd9a441 },
-  { id: 'piano', name: 'The piano', x: -1.8, color: 0xcf7a2e },
-  { id: 'words', name: 'Where words live', x: 1.8, color: 0x7fb069 },
-  { id: 'sure', name: 'Sounding sure', x: 5.4, color: 0x9a8fd4 },
+  { id: 'fit', name: 'Does it fit?', x: -6.0, color: 0xd9a441 },
+  { id: 'balloons', name: 'The balloon study', x: -3.0, color: 0xe06c5a },
+  { id: 'piano', name: 'The piano', x: 0, color: 0xcf7a2e },
+  { id: 'words', name: 'Where words live', x: 3.0, color: 0x7fb069 },
+  { id: 'sure', name: 'Sounding sure', x: 6.0, color: 0x9a8fd4 },
 ];
 
 /** A quiet hall with objects on plinths. Use one and the view zooms into it. */
@@ -63,7 +64,7 @@ export function createHistoryHall(ctx: WorldContext, spawnKey: string): World {
   });
 
   ctx.player.teleport(0, 3.8, Math.PI);
-  ctx.caption('Four things to touch. Each one answers a question — the last one is the one that matters.');
+  ctx.caption('Five things to touch. Each one answers a question — the last one is the one that matters.');
 
   return {
     id: 'history',

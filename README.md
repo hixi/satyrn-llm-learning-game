@@ -78,14 +78,21 @@ taught it.
      settle to "the ball counts against, the hole counts for". You can drag
      the ball or the hole to hunt for the moment it becomes unsure. The
      perceptron sits on top, weights and all.
-  2. *The piano* — hum a tune; above the keys you watch how it thinks, then it
+  2. *The balloon study* — burst the balloons you dislike; the rest float up and
+     are kept, one pile per colour. Five little machines, one per colour, watch
+     and learn your taste — their weights are drawn as the actual wiring
+     (which colours each one sees, and how much each counts), with the numbers
+     one tap away. **Pause** stops the flow, **pop this one** bursts without
+     aiming, and **let the model play for you** hands over the bursting until
+     you stop it and teach it more.
+  3. *The piano* — hum a tune; above the keys you watch how it thinks, then it
      takes over. Three ways of thinking: **by heart** (only "after this note,
      usually that one"), **one extra layer**, or **two extra layers** (real
      hidden layers, trained on the spot). **Keep going** plays on indefinitely
      and a **stop** knob interrupts whenever you like.
-  3. *Where words live* — words settle into areas by the company they keep;
+  4. *Where words live* — words settle into areas by the company they keep;
      tap one and watch which words it reaches for.
-  4. *Sounding sure* — finish a familiar sentence, then one it has never
+  5. *Sounding sure* — finish a familiar sentence, then one it has never
      heard and which makes no sense. It answers confidently anyway: it picks
      the most likely next word, not the true one. That is the thing to design
      around.
@@ -157,14 +164,21 @@ Nothing is hidden — the drawn network is the whole model.
      settle to "the ball counts against, the hole counts for". You can drag
      the ball or the hole to hunt for the moment it becomes unsure. The
      perceptron sits on top, weights and all.
-  2. *The piano* — hum a tune; above the keys you watch how it thinks, then it
+  2. *The balloon study* — burst the balloons you dislike; the rest float up and
+     are kept, one pile per colour. Five little machines, one per colour, watch
+     and learn your taste — their weights are drawn as the actual wiring
+     (which colours each one sees, and how much each counts), with the numbers
+     one tap away. **Pause** stops the flow, **pop this one** bursts without
+     aiming, and **let the model play for you** hands over the bursting until
+     you stop it and teach it more.
+  3. *The piano* — hum a tune; above the keys you watch how it thinks, then it
      takes over. Three ways of thinking: **by heart** (only "after this note,
      usually that one"), **one extra layer**, or **two extra layers** (real
      hidden layers, trained on the spot). **Keep going** plays on indefinitely
      and a **stop** knob interrupts whenever you like.
-  3. *Where words live* — words settle into areas by the company they keep;
+  4. *Where words live* — words settle into areas by the company they keep;
      tap one and watch which words it reaches for.
-  4. *Sounding sure* — finish a familiar sentence, then one it has never
+  5. *Sounding sure* — finish a familiar sentence, then one it has never
      heard and which makes no sense. It answers confidently anyway: it picks
      the most likely next word, not the true one. That is the thing to design
      around.

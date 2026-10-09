@@ -13,6 +13,7 @@ import { buildUi } from './ui/ui';
 import { buildExpositionHost } from './ui/exposition';
 import type { Exposition } from './ui/exposition';
 import { fit } from './expositions/fit';
+import { balloons } from './expositions/balloons';
 import { wordLibrary } from './expositions/wordLibrary';
 import { piano } from './expositions/piano';
 import { soundingSure } from './expositions/soundingSure';
@@ -60,6 +61,7 @@ function boot(): void {
   });
   const exhibits: Record<string, Exposition> = {
     fit,
+    balloons,
     words: wordLibrary,
     piano,
     sure: soundingSure,
