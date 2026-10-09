@@ -635,6 +635,8 @@ const storyUi = await page.evaluate(() => ({
   noteKeysShown: document.querySelectorAll('.piano-key:not(.piano-word):not(.piano-rest):not([hidden])').length,
 }));
 check('a word per key, a bigger model, notes hidden', storyUi.vocab === '12' && storyUi.words === 12 && storyUi.noteKeysShown === 0, JSON.stringify(storyUi));
+const wordScale = await page.evaluate(() => (document.querySelector('#expo-stage')?.dataset.scale ?? '').split(',').filter(Boolean));
+check('every word has its own note', wordScale.length === 12 && new Set(wordScale).size === 12, JSON.stringify(wordScale));
 const wordKeys = await page.$$('.piano-word');
 for (const i of [0, 1, 2, 0, 1, 4]) {
   await wordKeys[i].click();

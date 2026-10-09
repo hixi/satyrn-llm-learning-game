@@ -45,6 +45,8 @@ const MODES: { id: Mode; label: string; blurb: string }[] = [
 ];
 
 const STORY_WORDS = ['the', 'cat', 'dog', 'saw', 'ran', 'sat', 'on', 'a', 'mat', 'and', 'then', 'big'];
+/** one note per word: a run up the C-major scale and on past the octave */
+const WORD_MIDI = [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79];
 
 const hiddenFor = (mode: Mode): number[] =>
   mode === 'layer' ? [8] : mode === 'deep' ? [8, 8] : mode === 'expanded' ? [8, 8, 8] : mode === 'words' ? [16, 16] : [];
@@ -215,6 +217,7 @@ export const piano: Exposition = {
       playPause.disabled = phase === 'listen' || phase === 'training' || !model;
       if (mode === 'song') root.dataset.depth = String(songLayers);
       root.dataset.vocab = String(tokensOf());
+      root.dataset.scale = mode === 'words' ? WORD_MIDI.join(',') : '';
       root.dataset.noise = mode === 'heart' ? 'off' : 'on';
       root.dataset.numbers = showNumbers ? 'on' : 'off';
       root.dataset.timer = playTimer !== 0 ? 'on' : 'off';
@@ -369,11 +372,17 @@ export const piano: Exposition = {
       draw();
     }
 
+    const midiFor = (token: number): number | null => {
+      if (mode === 'words') return WORD_MIDI[token] ?? null;
+      return token < DEGREE_MIDI.length ? DEGREE_MIDI[token] : null;
+    };
+
     function play(token: number, learn: boolean, dur = 0.55): void {
       playedTotal++;
       root.dataset.played = String(playedTotal);
       const el = mode === 'words' ? wordEls[token] : token < NOTE_NAMES.length ? keyEls[token] : null;
-      if (token < DEGREE_MIDI.length) deps.playNote(DEGREE_MIDI[token], 0, dur, 0.85);
+      const midi = midiFor(token);
+      if (midi !== null) deps.playNote(midi, 0, dur, 0.85);
       if (el) {
         el.classList.add('on');
         window.setTimeout(() => el.classList.remove('on'), Math.max(120, dur * 800));
