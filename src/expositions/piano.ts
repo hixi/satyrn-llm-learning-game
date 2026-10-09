@@ -1,12 +1,15 @@
 import type { Exposition, ExpoDeps } from '../ui/exposition';
-import { DEGREE_MIDI, NOTE_NAMES, TransitionModel, mulberry32 } from '../game/music/model';
+import { DEGREE_MIDI, NOTE_NAMES, REST, TransitionModel, mulberry32 } from '../game/music/model';
 import type { MusicModel } from '../game/music/model';
 import { MlpModel } from '../game/music/mlp';
+import { SONGS } from '../game/music/songs';
+import { timeScale } from '../game/time';
 
 const PAUSE_MS = 1100;
 const CONTINUE_NOTES = 8;
+const NOISE = 0.05; // a little randomness, so it can wander out of a loop
 
-type Mode = 'heart' | 'layer' | 'deep';
+type Mode = 'heart' | 'layer' | 'deep' | 'expanded' | 'song' | 'words';
 
 const MODES: { id: Mode; label: string; blurb: string }[] = [
   { id: 'heart', label: 'by heart', blurb: 'It only remembers pairs: after this note, that one.' },
@@ -19,10 +22,34 @@ const MODES: { id: Mode; label: string; blurb: string }[] = [
   {
     id: 'deep',
     label: 'two hidden layers',
+    blurb: 'Two hidden layers, each one only touching its neighbours. That is all “deep” means: more layers in between.',
+  },
+  {
+    id: 'song',
+    label: 'learn a real song',
     blurb:
-      'Two hidden layers, each one only touching its neighbours. That is all “deep” means: more layers in between.',
+      'An old tune, learned in front of you on two or three hidden layers. It plays the whole time, so you hear it go from nonsense to the song.',
+  },
+  {
+    id: 'words',
+    label: 'words (a tiny story)',
+    blurb:
+      'Each key is a word instead of a note. Play a few words and it learns which word tends to follow which — then it writes the next ones back. This is what a chatbot is, with a handful of words instead of billions.',
+  },
+  {
+    id: 'expanded',
+    label: 'expanded: layers + pauses',
+    blurb:
+      'Three hidden layers, and now it remembers the gaps too. The pause key drops a rest into the tune, and it can put one back when it takes over.',
   },
 ];
+
+const STORY_WORDS = ['the', 'cat', 'dog', 'saw', 'ran', 'sat', 'on', 'a', 'mat', 'and', 'then', 'big'];
+
+const hiddenFor = (mode: Mode): number[] =>
+  mode === 'layer' ? [8] : mode === 'deep' ? [8, 8] : mode === 'expanded' ? [8, 8, 8] : mode === 'words' ? [16, 16] : [];
+const epochsFor = (mode: Mode): number => (mode === 'layer' ? 500 : mode === 'deep' ? 700 : mode === 'words' ? 800 : 900);
+const vocabFor = (mode: Mode): number => (mode === 'expanded' ? REST + 1 : mode === 'words' ? STORY_WORDS.length : NOTE_NAMES.length);
 
 /** The piano: you play; the model sits on top; then it takes over — for as long as you like. */
 export const piano: Exposition = {
@@ -33,13 +60,21 @@ export const piano: Exposition = {
     let phase: 'listen' | 'continuing' | 'idle' = 'listen';
     let mode: Mode = 'heart';
     let keepGoing = false;
+    let showNumbers = false;
     let pauseTimer = 0;
     let playTimer = 0;
     let model: MusicModel | null = null;
     let prev: number | null = null;
     let flash: number | null = null;
     let continueCount = 0;
-    let showNumbers = false;
+    let songIdx = 0;
+    let songLayers = 2;
+    let learning = false;
+    let learnPass = 0;
+    let learnSample: number[] = [];
+    let learnIdx = 0;
+    let learnModel: MlpModel | null = null;
+    let playedTotal = 0;
 
     const counts: number[][] = Array.from({ length: 8 }, () => new Array(8).fill(0));
 
@@ -61,6 +96,22 @@ export const piano: Exposition = {
       keys.appendChild(b);
       keyEls.push(b);
     }
+    const restKey = document.createElement('button');
+    restKey.className = 'ui-btn piano-key piano-rest';
+    restKey.dataset.note = String(REST);
+    restKey.innerHTML = `<b>·</b><i>pause</i>`;
+    restKey.addEventListener('click', () => hit(REST));
+    keys.appendChild(restKey);
+    const wordEls: HTMLButtonElement[] = [];
+    for (let i = 0; i < STORY_WORDS.length; i++) {
+      const b = document.createElement('button');
+      b.className = 'ui-btn piano-key piano-word';
+      b.dataset.note = String(i);
+      b.innerHTML = `<b>${STORY_WORDS[i]}</b>`;
+      b.addEventListener('click', () => hit(i));
+      keys.appendChild(b);
+      wordEls.push(b);
+    }
 
     const ribbon = document.createElement('div');
     ribbon.className = 'piano-ribbon';
@@ -69,6 +120,30 @@ export const piano: Exposition = {
     controls.className = 'piano-controls';
     const modeRow = document.createElement('div');
     modeRow.className = 'expo-row';
+    const songRow = document.createElement('div');
+    songRow.className = 'expo-row piano-songrow';
+    const songList = document.createElement('div');
+    songList.className = 'piano-songlist';
+    SONGS.forEach((song, i) => {
+      const b = document.createElement('button');
+      b.className = 'ui-btn piano-song';
+      b.dataset.song = song.id;
+      b.textContent = song.name;
+      b.addEventListener('click', () => startSong(i));
+      songList.appendChild(b);
+    });
+    const layersBtn = document.createElement('button');
+    layersBtn.className = 'ui-btn piano-layers';
+    layersBtn.addEventListener('click', () => {
+      songLayers = songLayers === 2 ? 3 : 2;
+      if (mode === 'song') startSong(songIdx);
+      else renderModes();
+    });
+    const hearBtn = document.createElement('button');
+    hearBtn.className = 'ui-btn piano-hear';
+    hearBtn.textContent = 'hear the real tune';
+    hearBtn.addEventListener('click', () => playRealSong());
+    songRow.append(songList, layersBtn, hearBtn);
     const runRow = document.createElement('div');
     runRow.className = 'expo-row';
     const forever = document.createElement('button');
@@ -78,16 +153,14 @@ export const piano: Exposition = {
     stop.textContent = 'stop';
     const numbers = document.createElement('button');
     numbers.className = 'ui-btn piano-numbers';
-    numbers.addEventListener('click', () => {
-      showNumbers = !showNumbers;
-      renderModes();
-      draw();
-      say(showNumbers ? 'Numbers on: every value it holds, and the chance it gives each next note.' : 'Numbers off.');
-    });
     runRow.append(forever, stop, numbers);
-    controls.append(modeRow, runRow);
+    controls.append(modeRow, songRow, runRow);
 
     root.append(canvas, keys, ribbon, controls);
+
+    const tokensOf = () => vocabFor(mode);
+    const labelFor = (i: number) =>
+      mode === 'words' ? (STORY_WORDS[i] ?? '') : i < NOTE_NAMES.length ? NOTE_NAMES[i] : '·';
 
     function renderModes(): void {
       modeRow.innerHTML = '';
@@ -103,28 +176,49 @@ export const piano: Exposition = {
       forever.classList.toggle('on', keepGoing);
       numbers.textContent = `numbers: ${showNumbers ? 'on' : 'off'}`;
       numbers.classList.toggle('on', showNumbers);
-      root.dataset.numbers = showNumbers ? 'on' : 'off';
-      stop.disabled = phase !== 'continuing';
+      stop.disabled = playTimer === 0;
+      const wordsMode = mode === 'words';
+      keyEls.forEach((el) => (el.hidden = wordsMode));
+      wordEls.forEach((el) => (el.hidden = !wordsMode));
+      restKey.hidden = wordsMode || mode !== 'expanded';
+      songRow.hidden = mode !== 'song';
+      keys.hidden = mode === 'song';
+      layersBtn.textContent = `layers: ${songLayers}`;
       root.dataset.mode = mode;
+      root.dataset.song = SONGS[songIdx].id;
+      root.dataset.learning = learning ? 'on' : 'off';
+      root.dataset.pass = String(learnPass);
+      root.dataset.played = String(playedTotal);
+      if (mode === 'song') root.dataset.depth = String(songLayers);
+      root.dataset.vocab = String(tokensOf());
+      root.dataset.noise = mode === 'heart' ? 'off' : 'on';
+      root.dataset.numbers = showNumbers ? 'on' : 'off';
+      root.dataset.timer = playTimer !== 0 ? 'on' : 'off';
     }
 
     function setMode(next: Mode): void {
-      if (next === mode) return;
+      stopTimers();
+      playedTotal = 0;
+      learning = false;
+      learnSample = [];
+      learnIdx = 0;
       mode = next;
       notes = [];
       for (const row of counts) row.fill(0);
       prev = null;
       flash = null;
       model = null;
+      continueCount = 0;
       setPhase('listen');
       renderRibbon();
       renderModes();
       draw();
-      say(`How it thinks: ${MODES.find((m) => m.id === next)!.label}. ${MODES.find((m) => m.id === next)!.blurb} Play a tune.`);
+      const m = MODES.find((x) => x.id === next)!;
+      say(`How it thinks: ${m.label}. ${m.blurb} Play a tune.`);
     }
 
-    function rowY(i: number, rows = 8): number {
-      const span = Math.min(260, rows * 30);
+    function rowY(i: number, rows: number): number {
+      const span = Math.min(258, rows * 30);
       return 30 + (i + 0.5) * (span / rows);
     }
 
@@ -145,10 +239,10 @@ export const piano: Exposition = {
       g.stroke();
     }
 
-    function dot(x: number, y: number, r: number, color: string): void {
+    function dot(x: number, y: number, r: number, colour: string): void {
       g.beginPath();
       g.arc(x, y, r, 0, Math.PI * 2);
-      g.fillStyle = color;
+      g.fillStyle = colour;
       g.fill();
     }
 
@@ -162,14 +256,14 @@ export const piano: Exposition = {
           const c = counts[i][j];
           if (c === 0) continue;
           const inUse = i === prev;
-          link(leftX, rowY(i), rightX, rowY(j), (inUse ? 0.35 : 0.1) + 0.6 * (c / max), 1, 1 + (c / max) * (inUse ? 5 : 3));
+          link(leftX, rowY(i, 8), rightX, rowY(j, 8), (inUse ? 0.35 : 0.1) + 0.6 * (c / max), 1, 1 + (c / max) * (inUse ? 5 : 3));
         }
       }
       for (let i = 0; i < 8; i++) {
-        dot(leftX, rowY(i), i === prev ? 9 : 6, i === prev ? '#f4ecd8' : '#d9a441');
-        dot(rightX, rowY(i), i === flash ? 11 : 6, i === flash ? '#f4ecd8' : 'rgba(111,168,220,.9)');
-        label(NOTE_NAMES[i], leftX - 20, rowY(i) + 5, 'right');
-        label(NOTE_NAMES[i], rightX + 20, rowY(i) + 5);
+        dot(leftX, rowY(i, 8), i === prev ? 9 : 6, i === prev ? '#f4ecd8' : '#d9a441');
+        dot(rightX, rowY(i, 8), i === flash ? 11 : 6, i === flash ? '#f4ecd8' : 'rgba(111,168,220,.9)');
+        label(NOTE_NAMES[i], leftX - 20, rowY(i, 8) + 5, 'right');
+        label(NOTE_NAMES[i], rightX + 20, rowY(i, 8) + 5);
       }
       label('what it heard', leftX - 130, 18);
       label('what it expects next', rightX - 30, 18);
@@ -178,9 +272,8 @@ export const piano: Exposition = {
         const total = row.reduce((a, b) => a + b, 0);
         for (let j = 0; j < 8; j++) {
           if (row[j] === 0) continue;
-          const x = (leftX + rightX) / 2;
-          label(`${row[j]}`, x, rowY(j) + 5, 'center');
-          if (total > 0) label(`${Math.round((row[j] / total) * 100)}%`, rightX + 48, rowY(j) + 5);
+          label(`${row[j]}`, (leftX + rightX) / 2, rowY(j, 8) + 5, 'center');
+          if (total > 0) label(`${Math.round((row[j] / total) * 100)}%`, rightX + 48, rowY(j, 8) + 5);
         }
       }
       root.dataset.transitions = String(counts.flat().reduce((a, b) => a + b, 0));
@@ -189,97 +282,51 @@ export const piano: Exposition = {
 
     function drawLayers(): void {
       if (!(model instanceof MlpModel)) return;
+      const V = model.config.vocab;
       const acts = model.activationsOf(notes.slice(-2));
       const weights = model.weightLayers();
       const cols = weights.length + 1;
-      const xs = cols === 3 ? [140, 360, 580] : [120, 300, 480, 660];
-      const rowsOf = (col: number) => (col === 0 ? 8 : weights[col - 1].outSize);
+      const xs = cols === 4 ? [120, 300, 480, 660] : cols === 3 ? [140, 360, 580] : [120, 260, 400, 540, 660];
+      const rowsOf = (col: number) => (col === 0 ? V : weights[col - 1].outSize);
       const lit = new Set(notes.slice(-2));
 
-      // links between neighbouring columns
       for (let l = 0; l < weights.length; l++) {
         const layer = weights[l];
         let max = 1e-6;
         for (const v of layer.w) max = Math.max(max, Math.abs(v));
-        const outRows = layer.outSize;
-        for (let o = 0; o < outRows; o++) {
+        for (let o = 0; o < layer.outSize; o++) {
           for (let i = 0; i < layer.inSize; i++) {
             const w = layer.w[o * layer.inSize + i];
             if (Math.abs(w) < max * 0.25) continue;
-            const from = l === 0 ? i % 8 : i;
+            const from = l === 0 ? i % V : i;
             link(xs[l], rowY(from, rowsOf(l)), xs[l + 1], rowY(o, rowsOf(l + 1)), 0.08 + 0.6 * (Math.abs(w) / max), w, 1 + (Math.abs(w) / max) * 2.5);
           }
         }
       }
-      // a band and a name for every hidden layer, so they read as real
-      for (let c = 1; c < cols - 1; c++) {
-        const rows = rowsOf(c);
-        const top = rowY(0, rows) - 24;
-        const bottom = rowY(rows - 1, rows) + 24;
-        g.fillStyle = 'rgba(154,143,212,.12)';
-        g.fillRect(xs[c] - 44, top, 88, bottom - top);
-        g.strokeStyle = 'rgba(154,143,212,.45)';
-        g.lineWidth = 1;
-        g.strokeRect(xs[c] - 44, top, 88, bottom - top);
-        label(`hidden layer ${c}`, xs[c] - 44, 18);
-      }
-
-      // nodes
       const probs = model.distribution(notes.slice(-2), 0.8);
       for (let c = 0; c < cols; c++) {
         const rows = rowsOf(c);
         for (let i = 0; i < rows; i++) {
-          let color = 'rgba(244,236,216,.25)';
+          let colour = 'rgba(244,236,216,.25)';
           if (c === 0) {
-            color = lit.has(i) ? '#f4ecd8' : '#d9a441';
+            colour = lit.has(i) ? '#f4ecd8' : '#d9a441';
           } else if (c === cols - 1) {
-            color = i === flash ? '#f4ecd8' : `rgba(111,168,220,${0.35 + probs[i] * 0.65})`;
+            colour = i === flash ? '#f4ecd8' : `rgba(111,168,220,${0.35 + (probs[i] ?? 0) * 0.65})`;
           } else {
             const a = Math.min(1, Math.abs(acts[c][i] ?? 0));
-            color = `rgba(154,143,212,${0.25 + a * 0.75})`;
+            colour = `rgba(154,143,212,${0.25 + a * 0.75})`;
           }
-          dot(xs[c], rowY(i, rows), i === flash && c === cols - 1 ? 11 : 6, color);
+          dot(xs[c], rowY(i, rows), i === flash && c === cols - 1 ? 11 : 6, colour);
           if (showNumbers) {
-            const x = xs[c];
-            const y = rowY(i, rows);
-            if (c === cols - 1) {
-              label(`${Math.round(probs[i] * 100)}%`, x + 12, y + 5);
-            } else if (c === 0) {
-              label(`${NOTE_NAMES[i]}`, x - 14, y + 5, 'right');
-            } else {
-              label(`${(acts[c][i] ?? 0).toFixed(2)}`, x + 12, y + 5);
-            }
+            if (c === 0) label(labelFor(i), xs[c] - 14, rowY(i, rows) + 5, 'right');
+            else if (c === cols - 1) label(`${Math.round((probs[i] ?? 0) * 100)}%`, xs[c] + 12, rowY(i, rows) + 5);
+            else label(`${(acts[c][i] ?? 0).toFixed(2)}`, xs[c] + 12, rowY(i, rows) + 5);
           }
         }
         if (c === 0) label('what it heard', xs[c] - 60, 18);
         else if (c === cols - 1) label('what it expects next', xs[c] - 90, 18);
+        else label(`hidden layer ${c}`, xs[c] - 44, 18);
       }
-
-      // with the numbers on, name the strongest weights coming from what it just heard
-      if (showNumbers && weights.length > 0) {
-        const first = weights[0];
-        const rowSource = notes[notes.length - 1];
-        if (rowSource !== undefined) {
-          const entries: { in: number; out: number; w: number }[] = [];
-          for (let o = 0; o < first.outSize; o++) {
-            for (let i = 0; i < first.inSize; i++) {
-              if (i % 8 !== rowSource) continue;
-              const w = first.w[o * first.inSize + i];
-              entries.push({ in: i, out: o, w });
-            }
-          }
-          entries.sort((a, b) => Math.abs(b.w) - Math.abs(a.w));
-          for (const e of entries.slice(0, 4)) {
-            label(
-              `${e.w >= 0 ? '+' : ''}${e.w.toFixed(2)}`,
-              (xs[0] + xs[1]) / 2,
-              rowY(e.out, first.outSize) + 5,
-              'center',
-            );
-          }
-        }
-      }
-
       root.dataset.depth = String(model.depth);
       root.dataset.transitions = String(model.paramCount);
     }
@@ -291,19 +338,22 @@ export const piano: Exposition = {
       else drawLookup();
     }
 
-    function notePlayed(degree: number, learn: boolean): void {
-      if (learn && prev !== null && mode === 'heart') counts[prev][degree]++;
-      prev = degree;
-      flash = degree;
+    function notePlayed(token: number, learn: boolean): void {
+      if (learn && prev !== null && mode === 'heart' && token < 8 && prev < 8) counts[prev][token]++;
+      prev = token;
+      flash = token;
       draw();
     }
 
-    function play(degree: number, learn: boolean, dur = 0.55): void {
-      deps.playNote(DEGREE_MIDI[degree], 0, dur, 0.85);
-      const el = keyEls[degree];
-      el.classList.add('on');
-      window.setTimeout(() => el.classList.remove('on'), Math.max(120, dur * 800));
-      notePlayed(degree, learn);
+    function play(token: number, learn: boolean, dur = 0.55): void {
+      playedTotal++;
+      const el = mode === 'words' ? wordEls[token] : token < NOTE_NAMES.length ? keyEls[token] : null;
+      if (token < DEGREE_MIDI.length) deps.playNote(DEGREE_MIDI[token], 0, dur, 0.85);
+      if (el) {
+        el.classList.add('on');
+        window.setTimeout(() => el.classList.remove('on'), Math.max(120, dur * 800));
+      }
+      notePlayed(token, learn);
     }
 
     function setPhase(p: typeof phase): void {
@@ -314,30 +364,32 @@ export const piano: Exposition = {
     }
 
     function renderRibbon(): void {
-      ribbon.textContent = notes.map((d) => NOTE_NAMES[d]).join('  ');
+      ribbon.textContent = notes.map((t) => labelFor(t)).join('  ');
       root.dataset.notes = String(notes.length);
     }
 
-    function stopTimers(clearPause = true): void {
-      if (clearPause && pauseTimer) window.clearTimeout(pauseTimer);
+    function stopTimers(): void {
+      if (pauseTimer) window.clearTimeout(pauseTimer);
       if (playTimer) window.clearInterval(playTimer);
       pauseTimer = 0;
       playTimer = 0;
     }
 
-    function hit(degree: number): void {
+    function hit(token: number): void {
+      if (mode === 'song') return;
       if (phase === 'continuing') return;
+      if (token === REST && mode !== 'expanded') return;
       if (phase === 'idle') {
         notes = [];
         for (const row of counts) row.fill(0);
         prev = null;
         flash = null;
       }
-      notes.push(degree);
-      play(degree, true);
+      notes.push(token);
+      play(token, true, token === REST ? 0.2 : 0.55);
       renderRibbon();
       setPhase('listen');
-      say(`${notes.length} note${notes.length === 1 ? '' : 's'} heard. Keep going, or stop — ${mode === 'heart' ? 'the lines below fill in' : 'the layers light up'} as it listens.`);
+      say(`${notes.length} step${notes.length === 1 ? '' : 's'} heard. Keep going, or stop — ${mode === 'heart' ? 'the lines fill in' : 'the layers light up'} as it listens.`);
       if (pauseTimer) window.clearTimeout(pauseTimer);
       pauseTimer = window.setTimeout(takeOver, PAUSE_MS);
     }
@@ -347,45 +399,164 @@ export const piano: Exposition = {
         say('Play a few more notes — it needs a little of your tune to learn from.');
         return;
       }
+      const V = tokensOf();
       if (mode === 'heart') {
         const counter = new TransitionModel();
-        counter.train(notes);
+        counter.train(notes.filter((t) => t < 8));
         model = counter;
       } else {
-        const mlp = new MlpModel({ vocab: 8, context: 2, hidden: mode === 'layer' ? [8] : [8, 8] });
-        mlp.trainEpochs([notes], mode === 'layer' ? 500 : 700, 0.35);
+        const mlp = new MlpModel({ vocab: V, context: 2, hidden: hiddenFor(mode) });
+        mlp.trainEpochs([notes], epochsFor(mode), 0.3);
         model = mlp;
       }
-      setPhase('continuing');
       continueCount = 0;
-      say(
-        mode === 'heart'
-          ? 'Listen. It is finishing your tune from the pairs it noticed — nothing else.'
-          : `Listen. It is finishing your tune through ${mode === 'layer' ? 'a hidden layer' : 'two hidden layers'} — it learned a pattern, not a lookup.`,
-      );
+      setPhase('continuing');
       const rng = mulberry32(7 + notes.length);
       const seq = notes.slice(-2);
+      const modeLine =
+        mode === 'heart'
+          ? 'from the pairs it noticed'
+          : mode === 'words'
+            ? 'word by word, with two big hidden layers'
+            : mode === 'expanded'
+              ? `through three hidden layers, pauses and all`
+              : `through ${mode === 'layer' ? 'a hidden layer' : 'two hidden layers'}`;
+      say(`Listen. It is finishing your tune ${modeLine}.`);
       playTimer = window.setInterval(() => {
-        const next = model!.sample(seq.slice(-2), 0.8, rng);
+        const context = seq.slice(-2);
+        let next: number;
+        if (mode === 'heart' || !(model instanceof MlpModel)) {
+          next = model!.sample(context, 0.8, rng);
+        } else {
+          // a little noise, so a strong habit or a loop can be broken
+          const p = model.distribution(context, 0.8);
+          const noisy = p.map((v) => (1 - NOISE) * v + NOISE / p.length);
+          let r = rng();
+          next = noisy.length - 1;
+          for (let i = 0; i < noisy.length; i++) {
+            r -= noisy[i];
+            if (r <= 0) {
+              next = i;
+              break;
+            }
+          }
+        }
         seq.push(next);
         notes.push(next);
-        play(next, false);
+        play(next, false, next === REST ? 0.2 : 0.5);
         renderRibbon();
         continueCount++;
-        if (!keepGoing && continueCount >= CONTINUE_NOTES) {
-          window.clearInterval(playTimer);
-          playTimer = 0;
-          setPhase('idle');
-          say('That was not your tune replayed. It never heard a tune before yours — it learned what tends to come next. A chatbot does exactly this with words.');
-        }
-      }, 360);
+        if (!keepGoing && continueCount >= CONTINUE_NOTES) stopContinuing(true);
+      }, beatMs());
+      renderModes();
     }
 
-    function interrupt(): void {
-      if (phase !== 'continuing') return;
-      stopTimers(false);
+    const beatMs = () => Math.max(80, 360 / timeScale());
+
+    function sampleTokens(m: MlpModel, seed: number[], count: number, temp: number): number[] {
+      const out = seed.slice();
+      const rng = mulberry32(11 + learnPass * 7 + count);
+      for (let i = 0; i < count; i++) {
+        const p = m.distribution(out.slice(-2), temp);
+        const noisy = p.map((v) => (1 - NOISE) * v + NOISE / p.length);
+        let r = rng();
+        let tok = noisy.length - 1;
+        for (let k = 0; k < noisy.length; k++) {
+          r -= noisy[k];
+          if (r <= 0) {
+            tok = k;
+            break;
+          }
+        }
+        out.push(tok);
+      }
+      return out.slice(seed.length);
+    }
+
+    function startSong(idx: number): void {
+      stopTimers();
+      songIdx = idx;
+      learnModel = new MlpModel({ vocab: 8, context: 2, hidden: Array.from({ length: songLayers }, () => 8) });
+      model = learnModel;
+      learnPass = 0;
+      learnSample = [];
+      learnIdx = 0;
+      learning = true;
+      notes = [];
+      prev = null;
+      flash = null;
+      setPhase('continuing');
+      setModeButtons();
+      say(`Learning “${SONGS[idx].name}” on ${songLayers} hidden layers. Listen — it plays while it learns.`);
+      playTimer = window.setInterval(songTick, beatMs());
+    }
+
+    function songTick(): void {
+      if (!learning || !(learnModel instanceof MlpModel)) return;
+      if (learnIdx >= learnSample.length) {
+        learnModel.trainEpochs([SONGS[songIdx].notes.map((n) => n[0])], 40, 0.3);
+        learnPass++;
+        learnSample = sampleTokens(learnModel, SONGS[songIdx].notes.map((n) => n[0]).slice(0, 2), 12, 0.6);
+        learnIdx = 0;
+        notes = [];
+        if (learnPass === 8) say('It knows the tune now — and it goes on playing what it learned until you stop it.');
+      }
+      const tok = learnSample[learnIdx++];
+      notes.push(tok);
+      play(tok, false);
+      renderRibbon();
+      draw();
+      renderModes();
+    }
+
+    function playRealSong(): void {
+      stopTimers();
+      learning = false;
+      const song = SONGS[songIdx];
+      const tokens = song.notes.map((n) => n[0]);
+      let i = 0;
+      notes = [];
+      setPhase('continuing');
+      renderModes();
+      playTimer = window.setInterval(() => {
+        if (i >= tokens.length) {
+          stopContinuing(false);
+          say(`That was “${song.name}” — the real tune, note for note.`);
+          return;
+        }
+        const tok = tokens[i++];
+        notes.push(tok);
+        play(tok, false);
+        renderRibbon();
+        draw();
+      }, beatMs());
+    }
+
+    function setModeButtons(): void {
+      for (const b of Array.from(modeRow.querySelectorAll('.piano-mode'))) {
+        const el = b as HTMLButtonElement;
+        el.classList.toggle('on', el.dataset.mode === mode);
+      }
+    }
+
+    function stopContinuing(finished: boolean): void {
+      stopTimers();
+      learning = false;
+      learnSample = [];
+      learnIdx = 0;
       setPhase('idle');
-      say('Stopped. Play again, or switch how it thinks.');
+      renderModes();
+      if (finished) {
+        say(
+          mode === 'words'
+            ? 'It never learned grammar — it learned which word tends to follow which. That is what a chatbot does, at a size we cannot draw.'
+            : mode === 'expanded'
+            ? 'That was not your tune replayed — three layers, and it remembered the gaps as well as the notes. A chatbot does this with words.'
+            : 'That was not your tune replayed. It never heard a tune before yours — it learned what tends to come next. A chatbot does exactly this with words.',
+        );
+      } else {
+        say('Stopped. Play again, or switch how it thinks.');
+      }
     }
 
     const onKey = (e: KeyboardEvent) => {
@@ -393,18 +564,27 @@ export const piano: Exposition = {
       if (m) {
         e.preventDefault();
         hit(Number(m[1]) - 1);
-      } else if (e.code === 'Space' && phase === 'continuing') {
+      } else if (e.code === 'Digit0' || e.code === 'KeyP') {
         e.preventDefault();
-        interrupt();
+        hit(REST);
+      } else if (e.code === 'Space' && playTimer !== 0) {
+        e.preventDefault();
+        stopContinuing(false);
       }
     };
     window.addEventListener('keydown', onKey);
     forever.addEventListener('click', () => {
       keepGoing = !keepGoing;
       renderModes();
-      say(keepGoing ? 'It will keep going until you stop it.' : 'It will stop after eight notes.');
+      say(keepGoing ? 'It will keep going until you stop it.' : 'It will stop after eight steps.');
     });
-    stop.addEventListener('click', interrupt);
+    stop.addEventListener('click', () => stopContinuing(false));
+    numbers.addEventListener('click', () => {
+      showNumbers = !showNumbers;
+      renderModes();
+      draw();
+      say(showNumbers ? 'Numbers on: every value it holds, and the chance it gives each next step.' : 'Numbers off.');
+    });
 
     setPhase('listen');
     renderRibbon();

@@ -498,6 +498,126 @@ await page.screenshot({ path: '/tmp/kilo/shot-17-piano-numbers.png' });
 await page.click('.piano-numbers');
 await page.waitForTimeout(150);
 
+// switching how it thinks stops the old tune dead
+for (const i of [0, 1, 2, 3]) {
+  await keyHandles[i].click();
+  await page.waitForTimeout(200);
+}
+await until(async () => (await page.evaluate(() => document.querySelector('#expo-stage')?.dataset.piano ?? '')) === 'continuing', 8000);
+await page.click('.piano-mode[data-mode="heart"]');
+await page.waitForTimeout(400);
+const afterSwitch = await page.evaluate(() => {
+  const st = document.querySelector('#expo-stage');
+  return { phase: st?.dataset.piano, timer: st?.dataset.timer, notes: Number(st?.dataset.notes ?? 0) };
+});
+await page.waitForTimeout(1200);
+const stillSame = await page.evaluate(() => Number(document.querySelector('#expo-stage')?.dataset.notes ?? 0));
+check(
+  'switching modes stops the old tune completely',
+  afterSwitch.phase === 'listen' && afterSwitch.timer === 'off' && stillSame === afterSwitch.notes,
+  JSON.stringify({ ...afterSwitch, stillSame }),
+);
+const afterStop = await page.evaluate(() => ({
+  disabled: document.querySelector('.piano-stop')?.disabled,
+  timer: document.querySelector('#expo-stage')?.dataset.timer,
+}));
+check('nothing is left running after the switch', afterStop.disabled === true && afterStop.timer === 'off', JSON.stringify(afterStop));
+
+// expanded: three hidden layers, and the pauses are remembered
+await page.click('.piano-mode[data-mode="expanded"]');
+await page.waitForTimeout(250);
+const expanded = await page.evaluate(() => {
+  const st = document.querySelector('#expo-stage');
+  return { vocab: st?.dataset.vocab, noise: st?.dataset.noise, restHidden: (document.querySelector('.piano-rest')?.hidden ?? true) };
+});
+check('expanded mode has three layers, a rest key and a little noise', expanded.vocab === '9' && expanded.noise === 'on' && expanded.restHidden === false, JSON.stringify(expanded));
+for (const step of ['Digit1', 'Digit1', 'Digit0', 'Digit3', 'Digit3', 'Digit0', 'Digit5']) {
+  await page.keyboard.press(step);
+  await page.waitForTimeout(160);
+}
+const withRests = await page.evaluate(() => document.getElementById('expo-stage')?.dataset.notes ?? '');
+check('pauses are written into the tune', Number(withRests) === 7, withRests);
+await until(async () => (await page.evaluate(() => document.querySelector('#expo-stage')?.dataset.piano ?? '')) === 'idle', 15000);
+const expandedDone = await page.evaluate(() => {
+  const st = document.querySelector('#expo-stage');
+  return { depth: st?.dataset.depth, notes: Number(st?.dataset.notes ?? 0), say: document.getElementById('expo-say')?.textContent ?? '' };
+});
+check('three hidden layers trained and played on', expandedDone.depth === '3' && expandedDone.notes >= 15, JSON.stringify(expandedDone));
+check('it owns up to the pauses', /pauses and all|remembered the gaps/i.test(expandedDone.say), expandedDone.say.slice(0, 80));
+await page.screenshot({ path: '/tmp/kilo/shot-18-piano-expanded.png' });
+// learn a real song, playing while it learns
+await page.click('.piano-mode[data-mode="song"]');
+await page.waitForTimeout(350);
+const songUi = await page.evaluate(() => ({
+  songs: document.querySelectorAll('.piano-song').length,
+  keysHidden: document.querySelector('.piano-keys')?.hidden ?? false,
+}));
+check('song mode offers old melodies and hides the keys', songUi.songs === 3 && songUi.keysHidden === true, JSON.stringify(songUi));
+await page.click('.piano-song[data-song="twinkle"]');
+await page.waitForTimeout(1400);
+await page.click('.piano-layers');
+await page.waitForTimeout(700);
+let songState = await page.evaluate(() => {
+  const st = document.querySelector('#expo-stage');
+  return {
+    learning: st?.dataset.learning,
+    pass: Number(st?.dataset.pass ?? 0),
+    depth: st?.dataset.depth,
+    notes: Number(st?.dataset.notes ?? 0),
+    song: st?.dataset.song,
+  };
+});
+check(
+  'it learns the song on three layers while playing',
+  songState.learning === 'on' && songState.depth === '3' && songState.song === 'twinkle' && (songState.pass >= 1 || songState.notes > 0),
+  JSON.stringify(songState),
+);
+await page.waitForTimeout(6500);
+songState = await page.evaluate(() => {
+  const st = document.querySelector('#expo-stage');
+  return { pass: Number(st?.dataset.pass ?? 0), played: Number(st?.dataset.played ?? 0) };
+});
+check('the passes keep coming while the tune plays', songState.pass >= 2 && songState.played > 20, JSON.stringify(songState));
+await page.screenshot({ path: '/tmp/kilo/shot-19-song.png' });
+await page.click('.piano-stop');
+await page.waitForTimeout(300);
+check('the song learner stops when asked', (await page.evaluate(() => document.querySelector('#expo-stage')?.dataset.learning)) === 'off', 'still on');
+
+// a word per key, a bigger model, and a tiny story
+await page.click('.piano-mode[data-mode="words"]');
+await page.waitForTimeout(350);
+const storyUi = await page.evaluate(() => ({
+  vocab: document.querySelector('#expo-stage')?.dataset.vocab,
+  words: document.querySelectorAll('.piano-word').length,
+  noteKeysShown: document.querySelectorAll('.piano-key:not(.piano-word):not(.piano-rest):not([hidden])').length,
+}));
+check(
+  'a word per key, a bigger model, notes hidden',
+  storyUi.vocab === '12' && storyUi.words === 12 && storyUi.noteKeysShown === 0,
+  JSON.stringify(storyUi),
+);
+const wordKeys = await page.$$('.piano-word');
+for (const i of [0, 1, 2, 0, 1, 4]) {
+  await wordKeys[i].click();
+  await page.waitForTimeout(190);
+}
+await until(async () => (await page.evaluate(() => document.querySelector('#expo-stage')?.dataset.piano ?? '')) === 'idle', 20000);
+const story = await page.evaluate(() => {
+  const st = document.querySelector('#expo-stage');
+  return { depth: st?.dataset.depth, notes: Number(st?.dataset.notes ?? 0), say: document.getElementById('expo-say')?.textContent ?? '' };
+});
+check('it writes the next words', story.depth === '2' && story.notes >= 14, JSON.stringify({ depth: story.depth, notes: story.notes }));
+check('and it names what that is', /chatbot|language model/i.test(story.say), story.say.slice(0, 90));
+await page.screenshot({ path: '/tmp/kilo/shot-20-words.png' });
+
+await page.click('.piano-mode[data-mode="heart"]');
+await page.waitForTimeout(300);
+const simpleState = await page.evaluate(() => ({
+  restHidden: document.querySelector('.piano-rest')?.hidden ?? true,
+  noise: document.querySelector('#expo-stage')?.dataset.noise,
+}));
+check('the simple mode has no pause key', simpleState.restHidden === true && simpleState.noise === 'off', JSON.stringify(simpleState));
+
 // keep going forever, and the stop knob
 await page.click('.piano-forever');
 await page.waitForTimeout(150);

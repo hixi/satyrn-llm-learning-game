@@ -1,4 +1,4 @@
-import { NOTE_NAMES, WORDS } from '../game/music/model';
+import { NOTE_NAMES, WORDS, tokenWord } from '../game/music/model';
 
 export interface AskerState {
   notes: number[];
@@ -110,7 +110,7 @@ export function buildAsker(cb: AskerCallbacks): AskerHandle {
     } else if (state.notes.length === 0) {
       expectsEl.textContent = 'the model waits for a prompt';
     } else {
-      const top = state.expects.slice(0, 2).map((e) => `"${WORDS[e.note]}" ${Math.round(e.p * 100)}%`);
+      const top = state.expects.slice(0, 2).map((e) => `"${tokenWord(e.note)}" ${Math.round(e.p * 100)}%`);
       expectsEl.textContent = top.length ? `expects ${top.join(' · ')}` : 'expects nothing yet';
     }
     for (const el of Array.from(actions.querySelectorAll('button'))) {

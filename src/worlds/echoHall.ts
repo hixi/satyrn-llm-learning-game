@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Box2 } from '../engine/collisions';
 import { addBox, dynamicLabel, mat, palette } from '../engine/sceneKit';
 import { NetPanel, presentModel } from '../game/music/netPanel';
-import { DEGREE_MIDI, WORDS, mulberry32 } from '../game/music/model';
+import { DEGREE_MIDI, tokenWord, mulberry32 } from '../game/music/model';
 import { buildModel, infoFor, listModels, select, selectedId } from '../game/music/store';
 import { ECHO_HELP } from '../game/help';
 import { buildAsker } from '../ui/asker';
@@ -98,7 +98,7 @@ export function createEchoHall(ctx: WorldContext, spawnKey: string): World {
   function refreshLabels(): void {
     const info = infoFor(selectedModelId);
     statusBoard.set(`Model: ${info.name} · ${model.sizeLabel()}`);
-    promptBoard.set(`Prompt: ${askNotes.length ? askNotes.map((d) => WORDS[d]).join(' ') : '—'}`);
+    promptBoard.set(`Prompt: ${askNotes.length ? askNotes.map((d) => tokenWord(d)).join(' ') : '—'}`);
     rackLabel.set(`Model: ${info.name}`);
     heatLabel.set(`Heat: ${TEMPS[tempIdx].name}`);
     leverLabel.set(playback ? 'The echo is singing…' : 'Let it continue');
@@ -128,7 +128,7 @@ export function createEchoHall(ctx: WorldContext, spawnKey: string): World {
       const info = infoFor(selectedModelId);
       const expectation = expects[0];
       ctx.caption(
-        `Model: ${info.name} · prompt: ${askNotes.length ? askNotes.map((d) => WORDS[d]).join(' ') : '—'}${expectation ? ` · expects "${WORDS[expectation.note]}"` : ''} · play keys, then “Let it continue”`,
+        `Model: ${info.name} · prompt: ${askNotes.length ? askNotes.map((d) => tokenWord(d)).join(' ') : '—'}${expectation ? ` · expects "${tokenWord(expectation.note)}"` : ''} · play keys, then “Let it continue”`,
       );
     }
   }
@@ -186,7 +186,7 @@ export function createEchoHall(ctx: WorldContext, spawnKey: string): World {
       const p = model.distribution(c, temperature());
       const note = model.sample(c, temperature(), rng);
       steps.push({ ctx: c, p, note });
-      ctx.audio.playNote(DEGREE_MIDI[note], start + i * beat(), beat() * 0.9, 0.85);
+      if (note < DEGREE_MIDI.length) ctx.audio.playNote(DEGREE_MIDI[note], start + i * beat(), beat() * 0.9, 0.85);
       seq.push(note);
     }
     lastSeq = seq.slice(prompt.length);
@@ -382,9 +382,9 @@ export function createEchoHall(ctx: WorldContext, spawnKey: string): World {
         presentModel(net, model, st.ctx, temperature(), st.note);
         const gen = pb.seq.slice(pb.prompt.length);
         ctx.caption(
-          `${infoFor(selectedModelId).name} · prompt ${pb.prompt.map((d) => WORDS[d]).join(' ')} ▸ ${gen
+          `${infoFor(selectedModelId).name} · prompt ${pb.prompt.map((d) => tokenWord(d)).join(' ')} ▸ ${gen
             .slice(0, idx + 1)
-            .map((d) => WORDS[d])
+            .map((d) => tokenWord(d))
             .join(' ')}`,
         );
       }

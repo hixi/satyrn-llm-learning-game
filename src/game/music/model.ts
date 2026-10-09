@@ -7,6 +7,12 @@
 export const DEGREE_MIDI = [60, 62, 64, 65, 67, 69, 71, 72];
 export const NOTE_NAMES = ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C'];
 export const WORDS = ['the', 'cat', 'sat', 'on', 'a', 'mat', 'and', 'then'];
+export const REST = WORDS.length; // the "pause" token, used when a melody remembers its gaps
+
+/** Plain label for any token: a word for notes, a dot for a rest. */
+export function tokenWord(token: number): string {
+  return token >= 0 && token < WORDS.length ? WORDS[token] : '·';
+}
 
 /** What both model types offer the halls. */
 export interface MusicModel {

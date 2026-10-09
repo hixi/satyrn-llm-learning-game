@@ -86,10 +86,14 @@ taught it.
      aiming, and **let the model play for you** hands over the bursting until
      you stop it and teach it more.
   3. *The piano* — hum a tune; above the keys you watch how it thinks, then it
-     takes over. Three ways of thinking: **by heart** (only "after this note,
-     usually that one"), **one extra layer**, or **two extra layers** (real
-     hidden layers, trained on the spot). **Keep going** plays on indefinitely
-     and a **stop** knob interrupts whenever you like.
+     takes over. Modes: **by heart** (only "after this note, usually that one"),
+     **one** or **two hidden layers** (real networks trained on the spot),
+     **expanded** (three layers and a pause key, so rests are remembered too),
+     **learn a real song** (pick an old tune; it plays while it learns, so you
+     hear it go from nonsense to the song, on two or three layers), and
+     **words** (every key is a word — write a few and it writes the next ones
+     back; a chatbot, with a handful of words). **Keep going** plays on
+     indefinitely and a **stop** knob interrupts whenever you like.
   4. *Where words live* — words settle into areas by the company they keep;
      tap one and watch which words it reaches for.
   5. *Sounding sure* — finish a familiar sentence, then one it has never
@@ -172,10 +176,14 @@ Nothing is hidden — the drawn network is the whole model.
      aiming, and **let the model play for you** hands over the bursting until
      you stop it and teach it more.
   3. *The piano* — hum a tune; above the keys you watch how it thinks, then it
-     takes over. Three ways of thinking: **by heart** (only "after this note,
-     usually that one"), **one extra layer**, or **two extra layers** (real
-     hidden layers, trained on the spot). **Keep going** plays on indefinitely
-     and a **stop** knob interrupts whenever you like.
+     takes over. Modes: **by heart** (only "after this note, usually that one"),
+     **one** or **two hidden layers** (real networks trained on the spot),
+     **expanded** (three layers and a pause key, so rests are remembered too),
+     **learn a real song** (pick an old tune; it plays while it learns, so you
+     hear it go from nonsense to the song, on two or three layers), and
+     **words** (every key is a word — write a few and it writes the next ones
+     back; a chatbot, with a handful of words). **Keep going** plays on
+     indefinitely and a **stop** knob interrupts whenever you like.
   4. *Where words live* — words settle into areas by the company they keep;
      tap one and watch which words it reaches for.
   5. *Sounding sure* — finish a familiar sentence, then one it has never
