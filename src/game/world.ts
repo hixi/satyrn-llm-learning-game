@@ -36,6 +36,8 @@ export interface WorldContext {
   transition(route: string): void;
   toast(text: string): void;
   caption(text: string | null): void;
+  /** Open a full-screen exposition (no character, direct interaction). */
+  openExposition(id: string): void;
 }
 
 export type WorldFactory = (ctx: WorldContext, spawnKey: string) => World;

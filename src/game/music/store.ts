@@ -113,7 +113,7 @@ export function buildModel(id: string): MusicModel {
   if (info.source === 'preset') return buildPretrained();
   if (info.kind === 'network') {
     if (info.blob) return MlpModel.parse(info.blob);
-    const fresh = new MlpModel();
+    const fresh = new MlpModel({ vocab: 8, context: 2, hidden: [8] });
     fresh.trainEpochs(info.phrases, 200);
     return fresh;
   }

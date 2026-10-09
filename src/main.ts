@@ -6,10 +6,18 @@ import { InputManager } from './engine/input';
 import { createRenderer, webgl2Available } from './engine/renderer';
 import { PlayerAvatar } from './game/player';
 import { GameState } from './game/save';
+import { timeLabel } from './game/time';
 import { SceneManager } from './game/sceneManager';
 import { Interactable, WorldContext, interactableAt } from './game/world';
 import { buildUi } from './ui/ui';
+import { buildExpositionHost } from './ui/exposition';
+import type { Exposition } from './ui/exposition';
+import { fit } from './expositions/fit';
+import { wordLibrary } from './expositions/wordLibrary';
+import { piano } from './expositions/piano';
+import { soundingSure } from './expositions/soundingSure';
 import { createEchoHall } from './worlds/echoHall';
+import { createHistoryHall } from './worlds/historyHall';
 import { createHub } from './worlds/hub';
 import { createTrainingHall } from './worlds/trainingHall';
 
@@ -24,6 +32,7 @@ declare global {
         journal: number;
         audio: string;
         ghosted: number;
+        time: string;
         [key: string]: unknown;
       };
     };
@@ -46,6 +55,15 @@ function boot(): void {
   window.addEventListener('keydown', unlockAudio, { once: true });
   const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
   const ui = buildUi(input, state, isTouch);
+  const expo = buildExpositionHost((open) => input.setSuppressed(open), {
+    playNote: (midi, when, dur, vel) => audio.playNote(midi, when, dur, vel),
+  });
+  const exhibits: Record<string, Exposition> = {
+    fit,
+    words: wordLibrary,
+    piano,
+    sure: soundingSure,
+  };
 
   const ctx: WorldContext = {
     player,
@@ -56,6 +74,9 @@ function boot(): void {
     transition: (route: string) => sceneManager.navigate(route),
     toast: (text: string) => ui.toast(text),
     caption: (text: string | null) => ui.setCaption(text),
+    openExposition: (id: string) => {
+      if (exhibits[id]) expo.open(exhibits[id]);
+    },
   };
 
   const sceneManager = new SceneManager(ctx, player, {
@@ -66,6 +87,7 @@ function boot(): void {
   sceneManager.register('hub', createHub);
   sceneManager.register('training', createTrainingHall);
   sceneManager.register('echo', createEchoHall);
+  sceneManager.register('history', createHistoryHall);
 
   window.__satyrn = {
     teleport: (x: number, z: number, yaw = Math.PI) => player.teleport(x, z, yaw),
@@ -75,6 +97,7 @@ function boot(): void {
       keepsakes: state.data.keepsakes.filter((k) => !k.id.startsWith('seen:')).length,
       journal: state.data.journal.length,
       audio: audio.running ? 'running' : 'off',
+      time: timeLabel(),
       ghosted: fader.activeCount,
       ...(sceneManager.world?.debug?.() ?? {}),
     }),

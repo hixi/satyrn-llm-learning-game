@@ -3,48 +3,58 @@ import { mulberry32 } from './model';
 export interface MlpConfig {
   vocab: number;
   context: number;
-  hidden: number;
+  /** sizes of the hidden layers, in order */
+  hidden: number[];
 }
 
 export interface SerializedMlp {
   config: MlpConfig;
-  w1: number[];
-  b1: number[];
-  w2: number[];
-  b2: number[];
+  /** w[l] and b[l] flattened: layer l maps in[l] -> out[l], row-major out x in */
+  w: number[][];
+  b: number[][];
+}
+
+interface LayerWeights {
+  w: Float64Array;
+  b: Float64Array;
+  inSize: number;
+  outSize: number;
 }
 
 /**
- * A genuinely trained neural network: context notes (one-hot) → hidden tanh
- * layer → softmax over the next note, learned with cross-entropy and plain
- * SGD in the browser. Small on purpose — the whole weight matrix is drawn on
- * the panel.
+ * A genuinely trained network with any number of hidden layers:
+ * context notes (one-hot) → tanh layers → softmax over the next note.
+ * Learned in the browser with cross-entropy and plain SGD.
  */
 export class MlpModel {
   readonly kind = 'network' as const;
   readonly config: MlpConfig;
-  private w1: Float64Array;
-  private b1: Float64Array;
-  private w2: Float64Array;
-  private b2: Float64Array;
+  private layers: LayerWeights[] = [];
 
-  constructor(config: MlpConfig = { vocab: 8, context: 2, hidden: 8 }, seed = 1234) {
-    this.config = config;
-    const { vocab, context, hidden } = config;
-    const inSize = vocab * context;
+  constructor(config: MlpConfig = { vocab: 8, context: 2, hidden: [8] }, seed = 1234) {
+    this.config = { ...config, hidden: [...config.hidden] };
+    const sizes = [config.vocab * config.context, ...this.config.hidden, config.vocab];
     const rng = mulberry32(seed);
-    const a1 = Math.sqrt(2 / inSize);
-    const a2 = Math.sqrt(2 / hidden);
-    this.w1 = new Float64Array(hidden * inSize);
-    this.b1 = new Float64Array(hidden);
-    this.w2 = new Float64Array(vocab * hidden);
-    this.b2 = new Float64Array(vocab);
-    for (let i = 0; i < this.w1.length; i++) this.w1[i] = (rng() * 2 - 1) * a1;
-    for (let i = 0; i < this.w2.length; i++) this.w2[i] = (rng() * 2 - 1) * a2;
+    for (let l = 0; l < sizes.length - 1; l++) {
+      const inSize = sizes[l];
+      const outSize = sizes[l + 1];
+      const a = Math.sqrt(2 / inSize);
+      const w = new Float64Array(outSize * inSize);
+      for (let i = 0; i < w.length; i++) w[i] = (rng() * 2 - 1) * a;
+      this.layers.push({ w, b: new Float64Array(outSize), inSize, outSize });
+    }
+  }
+
+  get sizes(): number[] {
+    return [this.layers[0].inSize, ...this.layers.map((l) => l.outSize)];
+  }
+
+  get depth(): number {
+    return this.layers.length - 1;
   }
 
   get paramCount(): number {
-    return this.w1.length + this.b1.length + this.w2.length + this.b2.length;
+    return this.layers.reduce((n, l) => n + l.w.length + l.b.length, 0);
   }
 
   sizeLabel(): string {
@@ -64,25 +74,28 @@ export class MlpModel {
     return input;
   }
 
-  forward(context: number[]): { input: Float64Array; hidden: Float64Array; logits: Float64Array } {
-    const { vocab, hidden } = this.config;
-    const input = this.encode(context);
-    const inSize = input.length;
-    const hid = new Float64Array(hidden);
-    for (let h = 0; h < hidden; h++) {
-      let z = this.b1[h];
-      const base = h * inSize;
-      for (let i = 0; i < inSize; i++) z += this.w1[base + i] * input[i];
-      hid[h] = Math.tanh(z);
+  /** Activations of every stage: [input, hidden..., logits]. */
+  activationsOf(context: number[]): Float64Array[] {
+    const a: Float64Array[] = [this.encode(context)];
+    for (let l = 0; l < this.layers.length; l++) {
+      const layer = this.layers[l];
+      const z = new Float64Array(layer.outSize);
+      for (let o = 0; o < layer.outSize; o++) {
+        let s = layer.b[o];
+        const base = o * layer.inSize;
+        for (let i = 0; i < layer.inSize; i++) s += layer.w[base + i] * a[l][i];
+        z[o] = s;
+      }
+      const last = l === this.layers.length - 1;
+      if (last) {
+        a.push(z);
+      } else {
+        const h = new Float64Array(layer.outSize);
+        for (let o = 0; o < layer.outSize; o++) h[o] = Math.tanh(z[o]);
+        a.push(h);
+      }
     }
-    const logits = new Float64Array(vocab);
-    for (let v = 0; v < vocab; v++) {
-      let z = this.b2[v];
-      const base = v * hidden;
-      for (let h = 0; h < hidden; h++) z += this.w2[base + h] * hid[h];
-      logits[v] = z;
-    }
-    return { input, hidden: hid, logits };
+    return a;
   }
 
   private softmax(logits: Float64Array, temperature: number): number[] {
@@ -100,7 +113,8 @@ export class MlpModel {
   }
 
   distribution(context: number[], temperature: number): number[] {
-    return this.softmax(this.forward(context).logits, temperature);
+    const acts = this.activationsOf(context);
+    return this.softmax(acts[acts.length - 1], temperature);
   }
 
   sample(context: number[], temperature: number, rng: () => number): number {
@@ -122,33 +136,37 @@ export class MlpModel {
 
   /** One SGD step on a single (context → next) example. Returns the loss. */
   trainPair(context: number[], next: number, lr: number): number {
-    const { vocab, hidden } = this.config;
-    const { input, hidden: hid, logits } = this.forward(context);
-    const p = this.softmax(logits, 1);
-    const loss = -Math.log(Math.max(p[next], 1e-9));
+    const acts = this.activationsOf(context);
+    const L = this.layers.length;
+    const probs = this.softmax(acts[L], 1);
+    const loss = -Math.log(Math.max(probs[next], 1e-9));
 
-    const dLogits = new Float64Array(vocab);
-    for (let v = 0; v < vocab; v++) dLogits[v] = p[v] - (v === next ? 1 : 0);
+    const dZ: Float64Array[] = new Array(L);
+    dZ[L - 1] = new Float64Array(this.layers[L - 1].outSize);
+    for (let o = 0; o < dZ[L - 1].length; o++) dZ[L - 1][o] = probs[o] - (o === next ? 1 : 0);
 
-    const dHidden = new Float64Array(hidden);
-    for (let h = 0; h < hidden; h++) {
-      let sum = 0;
-      for (let v = 0; v < vocab; v++) sum += this.w2[v * hidden + h] * dLogits[v];
-      dHidden[h] = sum * (1 - hid[h] * hid[h]);
-    }
-
-    for (let v = 0; v < vocab; v++) {
-      for (let h = 0; h < hidden; h++) {
-        this.w2[v * hidden + h] -= lr * dLogits[v] * hid[h];
+    for (let l = L - 1; l >= 0; l--) {
+      const layer = this.layers[l];
+      const a = acts[l];
+      // gradient for the weights and bias of this layer
+      for (let o = 0; o < layer.outSize; o++) {
+        const g = dZ[l][o];
+        const base = o * layer.inSize;
+        for (let i = 0; i < layer.inSize; i++) layer.w[base + i] -= lr * g * a[i];
+        layer.b[o] -= lr * g;
       }
-      this.b2[v] -= lr * dLogits[v];
-    }
-    const inSize = input.length;
-    for (let h = 0; h < hidden; h++) {
-      for (let i = 0; i < inSize; i++) {
-        this.w1[h * inSize + i] -= lr * dHidden[h] * input[i];
+      if (l > 0) {
+        const prev = this.layers[l - 1];
+        const dA = new Float64Array(layer.inSize);
+        for (let i = 0; i < layer.inSize; i++) {
+          let s = 0;
+          for (let o = 0; o < layer.outSize; o++) s += layer.w[o * layer.inSize + i] * dZ[l][o];
+          // a = tanh(z) for every layer except the output
+          dA[i] = s * (1 - a[i] * a[i]);
+        }
+        dZ[l - 1] = dA;
+        void prev;
       }
-      this.b1[h] -= lr * dHidden[h];
     }
     return loss;
   }
@@ -170,26 +188,49 @@ export class MlpModel {
     return { loss: pairs.length ? loss / pairs.length : 0, epochs, pairs: pairs.length };
   }
 
-  weights(): { w1: Float64Array; w2: Float64Array; hidden: number; inputSize: number } {
-    return { w1: this.w1, w2: this.w2, hidden: this.config.hidden, inputSize: this.w1.length / this.config.hidden };
+  /** Weights per layer transition, for drawing. */
+  weightLayers(): { w: Float64Array; inSize: number; outSize: number }[] {
+    return this.layers.map((l) => ({ w: l.w, inSize: l.inSize, outSize: l.outSize }));
   }
 
   serialize(): SerializedMlp {
     return {
-      config: { ...this.config },
-      w1: Array.from(this.w1),
-      b1: Array.from(this.b1),
-      w2: Array.from(this.w2),
-      b2: Array.from(this.b2),
+      config: { ...this.config, hidden: [...this.config.hidden] },
+      w: this.layers.map((l) => Array.from(l.w)),
+      b: this.layers.map((l) => Array.from(l.b)),
     };
   }
 
-  static parse(data: SerializedMlp): MlpModel {
-    const model = new MlpModel(data.config);
-    model.w1 = Float64Array.from(data.w1);
-    model.b1 = Float64Array.from(data.b1);
-    model.w2 = Float64Array.from(data.w2);
-    model.b2 = Float64Array.from(data.b2);
+  static parse(data: SerializedMlp | (Record<string, unknown> & { config?: MlpConfig })): MlpModel {
+    // current format
+    if (Array.isArray((data as SerializedMlp).w)) {
+      const d = data as SerializedMlp;
+      const model = new MlpModel(d.config);
+      model.layers = model.layers.map((layer, l) => ({
+        ...layer,
+        w: Float64Array.from(d.w[l]),
+        b: Float64Array.from(d.b[l]),
+      }));
+      return model;
+    }
+    // old single-hidden-layer format { w1, b1, w2, b2 }
+    const legacy = data as unknown as {
+      config: { vocab: number; context: number; hidden: number };
+      w1: number[];
+      b1: number[];
+      w2: number[];
+      b2: number[];
+    };
+    const model = new MlpModel({
+      vocab: legacy.config.vocab,
+      context: legacy.config.context,
+      hidden: [legacy.config.hidden],
+    });
+    model.layers = model.layers.map((layer, l) => ({
+      ...layer,
+      w: Float64Array.from(l === 0 ? legacy.w1 : legacy.w2),
+      b: Float64Array.from(l === 0 ? legacy.b1 : legacy.b2),
+    }));
     return model;
   }
 }

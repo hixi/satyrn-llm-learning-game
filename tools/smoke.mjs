@@ -20,12 +20,27 @@ function check(name, cond, detail = '') {
 const probe = () => page.evaluate(() => window.__satyrn.probe());
 async function prompt() {
   await page.waitForTimeout(420);
-  return page.evaluate(() => document.getElementById('prompt')?.textContent?.replace(/\s*E$/, '') ?? '');
+  return page.evaluate(() => {
+    const el = document.getElementById('prompt');
+    if (!el || !el.classList.contains('visible')) return '';
+    return el.textContent?.replace(/\s*E$/, '') ?? '';
+  });
 }
+const readPrompt = () =>
+  page.evaluate(() => {
+    const el = document.getElementById('prompt');
+    if (!el || !el.classList.contains('visible')) return '';
+    return el.textContent?.replace(/\s*E$/, '') ?? '';
+  });
 async function interactAt(x, z, yaw, ms = 500) {
   await page.evaluate(([tx, tz, ty]) => window.__satyrn.teleport(tx, tz, ty), [x, z, yaw]);
-  await page.waitForTimeout(220);
-  const label = await prompt();
+  await page.waitForTimeout(350);
+  let label = '';
+  for (let i = 0; i < 10; i++) {
+    label = await readPrompt();
+    if (label) break;
+    await page.waitForTimeout(150);
+  }
   await page.keyboard.press('KeyE');
   await page.waitForTimeout(ms);
   return label;
@@ -55,6 +70,17 @@ await page.waitForTimeout(2000);
 await page.screenshot({ path: '/tmp/kilo/shot-1-hub.png' });
 let p = await probe();
 check('hub boot', p && p.keepsakes === 0, JSON.stringify(p));
+const timeBefore = (await probe()).time;
+await page.click('#time-btn');
+await page.waitForTimeout(200);
+const timeAfter = (await probe()).time;
+check('time control cycles', timeBefore !== timeAfter, `${timeBefore} -> ${timeAfter}`);
+for (let i = 0; i < 3; i++) {
+  await page.click('#time-btn');
+  await page.waitForTimeout(80);
+}
+p = await probe();
+check('time back to full speed', p.time === '1×', p.time);
 
 // occlusion ghost + walkability at the hub spawn
 await page.evaluate(() => window.__satyrn.teleport(16, -8, 0));
@@ -112,11 +138,20 @@ for (const key of ['Digit1', 'Digit5', 'Digit5', 'Digit6', 'Digit6', 'Digit5', '
 p = await probe();
 check('phrase composed', p.phrases[0] === 8 && p.notes === 8, JSON.stringify(p.phrases));
 
-await page.keyboard.press('Enter');
-await page.waitForTimeout(200);
+await page.keyboard.press('Escape');
+await page.waitForTimeout(300);
+check('step starts a paused run', (await interactAt(0, 1.9, 0)) === 'Step through learning', await prompt());
 p = await probe();
-check('counter training runs', p.busy === true && p.trainKind === 'counter' && p.total === 7, JSON.stringify({ busy: p.busy, total: p.total }));
+check(
+  'learning paused',
+  p.busy === true && p.paused === true && p.trainKind === 'counter' && p.step === 0 && p.total === 7,
+  JSON.stringify({ busy: p.busy, paused: p.paused, step: p.step, total: p.total }),
+);
+await interactAt(0, 1.9, 0);
+p = await probe();
+check('one step advances', p.step === 1, JSON.stringify(p.step));
 await page.screenshot({ path: '/tmp/kilo/shot-8-training.png' });
+check('resume from the lever', (await interactAt(-3.4, 1.9, 0)).startsWith('2 · Train'), await prompt());
 const finished = await until(async () => !(await probe()).busy, 10000);
 p = await probe();
 check(
@@ -125,6 +160,7 @@ check(
   JSON.stringify(p),
 );
 
+check('open notebook again', (await interactAt(3.4, 1.9, 0, 700)) === '1 · Open the notebook', await prompt());
 const routeBefore = page.url();
 await page.evaluate(() => window.__satyrn.teleport(0, 4.7, 0));
 await page.waitForTimeout(200);
@@ -257,11 +293,191 @@ check('echo keepsake', p.keepsakes === 2 && p.journal === 2, JSON.stringify(p));
 check('leave echo', (await interactAt(0, 4.6, 0)) === 'Return to the clearing', await prompt());
 await page.waitForTimeout(900);
 
+// ————— The Hall of History: objects you zoom into —————
+check('history door', (await interactAt(0, 8.2, 0)) === 'Enter the Hall of History', await prompt());
+await page.waitForTimeout(1200);
+check('routed to history', page.url().includes('#history.door'), page.url());
+check('hall spawn can walk', await walk(0.6));
+
+check('focus does it fit', (await interactAt(-5.4, -0.5, 0)) === 'Use Does it fit?', await prompt());
+await page.waitForTimeout(500);
+check('the perceptron sits on top', (await page.$('.fit-model')) !== null, 'no canvas');
+const fitSay = await page.evaluate(() => document.getElementById('expo-say')?.textContent ?? '');
+check(
+  'one plain line, no jargon',
+  fitSay.length > 0 && !/weight|bias|gradient|vector|threshold|epoch|probability|neuron/i.test(fitSay),
+  fitSay,
+);
+const fitState = await page.evaluate(() => {
+  const st = document.querySelector('#expo-stage');
+  return { phase: st?.dataset.phase, said: st?.dataset.said, wBall: st?.dataset.wBall, wHole: st?.dataset.wHole };
+});
+check('it makes its call before the drop', fitState.phase === 'guess' && (fitState.said === 'fits' || fitState.said === 'no'), JSON.stringify(fitState));
+let sawLie = false;
+for (let i = 0; i < 14; i++) {
+  await page.click('.fit-in');
+  await page.waitForTimeout(2400);
+  const t = await page.evaluate(() => document.getElementById('expo-say')?.textContent ?? '');
+  if (/believes you/i.test(t)) sawLie = true;
+}
+const afterYes = await page.evaluate(() => {
+  const st = document.querySelector('#expo-stage');
+  return { need: Number(st?.dataset.need ?? 0), said: st?.dataset.said ?? '', copied: st?.dataset.copied ?? '' };
+});
+check('teach it "fits" and it says fits everywhere', afterYes.need > 0.3 && afterYes.said === 'fits' && Number(afterYes.copied) >= 14, JSON.stringify(afterYes));
+check('it copies a lie you teach it', sawLie, 'no lie came up in 14 rounds');
+for (let i = 0; i < 14; i++) {
+  await page.click('.fit-out');
+  await page.waitForTimeout(2400);
+}
+const afterNo = await page.evaluate(() => {
+  const st = document.querySelector('#expo-stage');
+  return { need: Number(st?.dataset.need ?? 0), said: st?.dataset.said ?? '', score: document.querySelector('.fit-score')?.textContent ?? '' };
+});
+check('teach it "does not fit" and it swings the other way', afterNo.need < -0.3 && afterNo.said === 'no', JSON.stringify(afterNo));
+check('the copy score is kept', /it copies you: \d+ in a row/.test(afterNo.score), afterNo.score);
+
+// training is done: let it run on its own
+await page.click('.fit-auto');
+await page.waitForTimeout(400);
+let solo = await page.evaluate(() => {
+  const st = document.querySelector('#expo-stage');
+  return { auto: st?.dataset.auto ?? '', total: Number(st?.dataset.autoTotal ?? 0) };
+});
+check('it runs on its own when you decide training is done', solo.auto === 'on', JSON.stringify(solo));
+await page.waitForTimeout(8000);
+solo = await page.evaluate(() => {
+  const st = document.querySelector('#expo-stage');
+  return {
+    auto: st?.dataset.auto ?? '',
+    total: Number(st?.dataset.autoTotal ?? 0),
+    right: Number(st?.dataset.autoRight ?? 0),
+    score: document.querySelector('.fit-score')?.textContent ?? '',
+  };
+});
+check('it keeps calling and dropping by itself', solo.auto === 'on' && solo.total >= 3 && solo.right <= solo.total, JSON.stringify(solo));
+check('its solo score is shown', /on its own: \d+ right of \d+/.test(solo.score), solo.score);
+await page.screenshot({ path: '/tmp/kilo/shot-13-fit.png' });
+await page.keyboard.press('Escape');
+await page.waitForTimeout(400);
+check('step back to the hall', await page.evaluate(() => document.getElementById('expo').hidden), 'still open');
+
+check('focus the piano', (await interactAt(-1.8, -0.5, 0)) === 'Use The piano', await prompt());
+await page.waitForTimeout(500);
+check('the model is shown above the keys', (await page.$('.piano-model')) !== null, 'no canvas');
+const keyHandles = await page.$$('.piano-key');
+for (const i of [0, 0, 4, 4]) {
+  await keyHandles[i].click();
+  await page.waitForTimeout(240);
+}
+const learned = await page.evaluate(() => Number(document.querySelector('#expo-stage')?.dataset.transitions ?? 0));
+check('the model fills in as you play', learned >= 3, `links=${learned}`);
+const heardSay = await page.evaluate(() => document.getElementById('expo-say')?.textContent ?? '');
+check('the piano listens', /heard/.test(heardSay), heardSay);
+await until(async () => (await page.evaluate(() => document.querySelector('#expo-stage')?.dataset.piano ?? '')) === 'idle', 9000);
+const pianoState = await page.evaluate(() => {
+  const st = document.querySelector('#expo-stage');
+  return {
+    phase: st?.dataset.piano ?? '',
+    notes: Number(st?.dataset.notes ?? 0),
+    say: document.getElementById('expo-say')?.textContent ?? '',
+  };
+});
+check('it finishes the tune by itself', pianoState.phase === 'idle' && pianoState.notes >= 12, JSON.stringify(pianoState));
+check('it says what that has to do with chatbots', /chatbot/i.test(pianoState.say), pianoState.say.slice(0, 90));
+await page.screenshot({ path: '/tmp/kilo/shot-15-piano.png' });
+// advanced modes: one and two hidden layers, really trained
+await page.click('.piano-mode[data-mode="layer"]');
+await page.waitForTimeout(250);
+const modeSay = await page.evaluate(() => document.getElementById('expo-say')?.textContent ?? '');
+check('the name is explained, not just used', /hidden layer/.test(modeSay) && /nothing outside/i.test(modeSay), modeSay.slice(0, 110));
+for (const i of [0, 1, 2, 3]) {
+  await keyHandles[i].click();
+  await page.waitForTimeout(200);
+}
+await until(async () => (await page.evaluate(() => document.querySelector('#expo-stage')?.dataset.piano ?? '')) === 'idle', 15000);
+const adv = await page.evaluate(() => {
+  const st = document.querySelector('#expo-stage');
+  return { mode: st?.dataset.mode ?? '', depth: st?.dataset.depth ?? '', notes: Number(st?.dataset.notes ?? 0) };
+});
+check('a hidden layer trains and still finishes the tune', adv.mode === 'layer' && adv.depth === '1' && adv.notes >= 12, JSON.stringify(adv));
+await page.click('.piano-mode[data-mode="deep"]');
+await page.waitForTimeout(200);
+for (const i of [4, 5, 6, 7]) {
+  await keyHandles[i].click();
+  await page.waitForTimeout(200);
+}
+await until(async () => (await page.evaluate(() => document.querySelector('#expo-stage')?.dataset.piano ?? '')) === 'idle', 18000);
+const deep = await page.evaluate(() => {
+  const st = document.querySelector('#expo-stage');
+  return { mode: st?.dataset.mode ?? '', depth: st?.dataset.depth ?? '' };
+});
+check('two hidden layers train too', deep.mode === 'deep' && deep.depth === '2', JSON.stringify(deep));
+await page.screenshot({ path: '/tmp/kilo/shot-16-piano-layers.png' });
+await page.click('.piano-numbers');
+await page.waitForTimeout(250);
+const numsOn = await page.evaluate(() => document.querySelector('#expo-stage')?.dataset.numbers ?? '');
+check('the numbers button reveals the values', numsOn === 'on', numsOn);
+await page.screenshot({ path: '/tmp/kilo/shot-17-piano-numbers.png' });
+await page.click('.piano-numbers');
+await page.waitForTimeout(150);
+
+// keep going forever, and the stop knob
+await page.click('.piano-forever');
+await page.waitForTimeout(150);
+for (const i of [0, 1, 2]) {
+  await keyHandles[i].click();
+  await page.waitForTimeout(200);
+}
+await page.waitForTimeout(4200);
+const running = await page.evaluate(() => {
+  const st = document.querySelector('#expo-stage');
+  return { phase: st?.dataset.piano ?? '', notes: Number(st?.dataset.notes ?? 0) };
+});
+check('it keeps going until told to stop', running.phase === 'continuing' && running.notes > 11, JSON.stringify(running));
+await page.click('.piano-stop');
+await page.waitForTimeout(300);
+const stopped = await page.evaluate(() => document.querySelector('#expo-stage')?.dataset.piano ?? '');
+check('the stop knob interrupts immediately', stopped === 'idle', stopped);
+
+await page.keyboard.press('Escape');
+await page.waitForTimeout(400);
+// the confident answer: sounds right, can still be wrong
+check('focus the confident answer', (await interactAt(5.4, -0.5, 0)) === 'Use Sounding sure', await prompt());
+await page.waitForTimeout(500);
+const heardSlot = await page.$('.sentence-slot');
+await heardSlot.click();
+await page.waitForTimeout(300);
+let sureSay = await page.evaluate(() => document.getElementById('expo-say')?.textContent ?? '');
+check('it finishes a familiar sentence', /taught it|was .*sure/i.test(sureSay), sureSay.slice(0, 80));
+for (let i = 0; i < 6; i++) {
+  const kind = await page.evaluate(() => document.querySelector('#expo-stage')?.dataset.promptKind ?? '');
+  if (kind === 'never') break;
+  await page.click('.sentence-next');
+  await page.waitForTimeout(150);
+}
+const kindNow = await page.evaluate(() => document.querySelector('#expo-stage')?.dataset.promptKind ?? '');
+check('reached a sentence it never heard', kindNow === 'never', kindNow);
+await page.click('.sentence-slot');
+await page.waitForTimeout(300);
+sureSay = await page.evaluate(() => document.getElementById('expo-say')?.textContent ?? '');
+check(
+  'it is confidently wrong, and says why',
+  /cannot tell/.test(sureSay) && /sounds right/.test(sureSay) && !/probability|gradient|weight/i.test(sureSay),
+  sureSay.slice(0, 110),
+);
+await page.screenshot({ path: '/tmp/kilo/shot-16-sure.png' });
+await page.keyboard.press('Escape');
+await page.waitForTimeout(400);
+check('leave history', (await interactAt(0, 4.5, 0)) === 'Return to the clearing', await prompt());
+await page.waitForTimeout(1000);
+
 // persistence
+
 await page.reload({ waitUntil: 'load' });
 await page.waitForTimeout(1200);
 p = await probe();
-check('keepsakes persisted', p.keepsakes === 2 && p.journal === 2, JSON.stringify(p));
+check('keepsakes persisted', p.keepsakes === 2 && p.journal === 2, JSON.stringify({ k: p.keepsakes, j: p.journal }));
 const models = await page.evaluate(() => {
   const raw = localStorage.getItem('satyrn25d.music.v2');
     return raw ? JSON.parse(raw).models.length : -1;

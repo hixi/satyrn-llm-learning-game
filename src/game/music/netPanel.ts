@@ -294,9 +294,21 @@ export function presentModel(
 ): void {
   net.setKind(model.kind);
   if (model instanceof MlpModel) {
-    const f = model.forward(context);
-    const w = model.weights();
-    net.showNetwork(context, Array.from(f.hidden), model.distribution(context, temperature), w.w1, w.w2, flash);
+    const acts = model.activationsOf(context);
+    const layers = model.weightLayers();
+    const first = layers[0];
+    const last = layers[layers.length - 1];
+    const w1 = new Float64Array(8 * 16);
+    for (let h = 0; h < Math.min(8, first.outSize); h++) {
+      for (let i = 0; i < Math.min(16, first.inSize); i++) w1[h * 16 + i] = first.w[h * first.inSize + i];
+    }
+    const w2 = new Float64Array(8 * 8);
+    for (let o = 0; o < Math.min(8, last.outSize); o++) {
+      for (let h = 0; h < Math.min(8, last.inSize); h++) w2[o * 8 + h] = last.w[o * last.inSize + h];
+    }
+    const hidden = new Array(8).fill(0);
+    for (let h = 0; h < Math.min(8, acts[1].length); h++) hidden[h] = acts[1][h];
+    net.showNetwork(context, hidden, model.distribution(context, temperature), w1, w2, flash);
   } else {
     const last = context[context.length - 1] ?? null;
     net.show(model.distribution(context, temperature), last, flash);

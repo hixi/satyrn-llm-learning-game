@@ -6,12 +6,14 @@ import { DEGREE_MIDI, WORDS, mulberry32 } from '../game/music/model';
 import { buildModel, infoFor, listModels, select, selectedId } from '../game/music/store';
 import { ECHO_HELP } from '../game/help';
 import { buildAsker } from '../ui/asker';
+import { timeScale } from '../game/time';
 import { buildHelp } from '../ui/help';
 import { Interactable, World, WorldContext } from '../game/world';
 
 const KEEPSAKE = 'the-echo';
 const BEAT = 0.42;
 const GEN_NOTES = 8;
+const beat = () => BEAT / timeScale();
 const MAX_PROMPT = 4;
 const ROOM_X = 7.5;
 const ROOM_Z = 5.5;
@@ -184,12 +186,12 @@ export function createEchoHall(ctx: WorldContext, spawnKey: string): World {
       const p = model.distribution(c, temperature());
       const note = model.sample(c, temperature(), rng);
       steps.push({ ctx: c, p, note });
-      ctx.audio.playNote(DEGREE_MIDI[note], start + i * BEAT, BEAT * 0.9, 0.85);
+      ctx.audio.playNote(DEGREE_MIDI[note], start + i * beat(), beat() * 0.9, 0.85);
       seq.push(note);
     }
     lastSeq = seq.slice(prompt.length);
     lastPrompt = prompt;
-    playback = { kind: 'recall', seq, steps, prompt, start, dur: GEN_NOTES * BEAT + 0.5, step: -1 };
+    playback = { kind: 'recall', seq, steps, prompt, start, dur: GEN_NOTES * beat() + 0.5, step: -1 };
     if (!asker.isOpen()) {
       for (const [i, d] of prompt.entries()) {
         ctx.audio.playNote(DEGREE_MIDI[d], ctx.audio.time() + i * 0.2, 0.4, 0.7);
@@ -373,7 +375,7 @@ export function createEchoHall(ctx: WorldContext, spawnKey: string): World {
       const pb = playback;
       if (!pb) return;
       const elapsed = ctx.audio.time() - pb.start;
-      const idx = Math.floor(elapsed / BEAT);
+      const idx = Math.floor(elapsed / beat());
       if (idx !== pb.step && idx >= 0 && idx < pb.seq.length) {
         pb.step = idx;
         const st = pb.steps[Math.min(idx, pb.steps.length - 1)];

@@ -1,5 +1,6 @@
 import { InputManager } from '../engine/input';
 import { GameState } from '../game/save';
+import { cycleTime, timeLabel } from '../game/time';
 
 export interface UI {
   setPrompt(text: string | null): void;
@@ -13,7 +14,7 @@ export function buildUi(input: InputManager, state: GameState, isTouch: boolean)
   root.innerHTML = [
     '<div id="hud-top">',
     '<div><div id="title">Satyrn — Wayfarer’s Ground</div><div id="keepsakes"></div></div>',
-    '<div id="hud-buttons"><button class="ui-btn" id="journal-btn">Journal</button></div>',
+    '<div id="hud-buttons"><button class="ui-btn" id="time-btn">time 1×</button><button class="ui-btn" id="journal-btn">Journal</button></div>',
     '</div>',
     '<div id="toasts"></div>',
     '<div id="prompt"></div>',
@@ -64,6 +65,12 @@ export function buildUi(input: InputManager, state: GameState, isTouch: boolean)
 
   state.onChanged = refreshHud;
   refreshHud();
+
+  const timeBtn = document.getElementById('time-btn')!;
+  timeBtn.textContent = `time ${timeLabel()}`;
+  timeBtn.addEventListener('click', () => {
+    timeBtn.textContent = `time ${cycleTime()}`;
+  });
 
   document.getElementById('journal-btn')!.addEventListener('click', () => {
     journalEl.classList.toggle('open');

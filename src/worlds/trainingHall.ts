@@ -16,6 +16,7 @@ import {
   selectedId,
 } from '../game/music/store';
 import { TRAINING_HELP } from '../game/help';
+import { timeScale } from '../game/time';
 import { buildComposer } from '../ui/composer';
 import { buildHelp } from '../ui/help';
 import { Interactable, World, WorldContext } from '../game/world';
@@ -43,6 +44,7 @@ interface CounterTraining {
   model: TransitionModel;
   start: number;
   perStep: number;
+  paused: boolean;
 }
 
 interface NetTraining {
@@ -52,6 +54,7 @@ interface NetTraining {
   epochsDone: number;
   loss: number;
   lastAt: number;
+  paused: boolean;
 }
 
 type Training = CounterTraining | NetTraining;
@@ -214,8 +217,13 @@ export function createTrainingHall(ctx: WorldContext, spawnKey: string): World {
     presentModel(net, model, ctxNotes.slice(-2).length ? ctxNotes.slice(-2) : [phrase[0]], 1, phrase[phrase.length - 1]);
   }
 
-  function train(): void {
-    if (training) return;
+  function train(paused = false): void {
+    if (training) {
+      training.paused = false;
+      composerHandle.render({ phrases: draft.phrases, current: draft.current, busy: true });
+      ctx.toast('Resumed at full speed.');
+      return;
+    }
     const usable = draft.phrases.filter((p) => p.length >= 2);
     const total = draft.phrases.reduce((n, p) => n + p.length, 0);
     if (total < 6 || usable.length === 0) {
@@ -223,18 +231,52 @@ export function createTrainingHall(ctx: WorldContext, spawnKey: string): World {
       return;
     }
     if (draft.method === 'network') {
-      training = { kind: 'network', model: new MlpModel(), phrases: usable.map((p) => p.slice()), epochsDone: 0, loss: NaN, lastAt: 0 };
+      training = { kind: 'network', model: new MlpModel(), phrases: usable.map((p) => p.slice()), epochsDone: 0, loss: NaN, lastAt: 0, paused };
       ctx.toast(`Training a real network — ${EPOCHS} passes over your notes. Watch the loss fall.`);
     } else {
       const steps: TrainStep[] = [];
       for (const phrase of draft.phrases) {
         for (let i = 1; i < phrase.length; i++) steps.push({ context: phrase.slice(0, i), next: phrase[i] });
       }
-      training = { kind: 'counter', steps, idx: 0, model: new TransitionModel(), start: ctx.audio.time(), perStep: 0.14 };
-      ctx.toast(`Counting ${steps.length} note transitions…`);
+      training = { kind: 'counter', steps, idx: 0, model: new TransitionModel(), start: ctx.audio.time(), perStep: 0.14 / timeScale(), paused };
+      ctx.toast(paused ? 'Ready — press Step to teach it one note at a time.' : `Counting ${steps.length} note transitions…`);
     }
     composerHandle.setCollapsed(true);
     composerHandle.render({ phrases: draft.phrases, current: draft.current, busy: true });
+    if (paused) ctx.caption('paused · press Step to advance one step at a time, Train to run it');
+  }
+
+  function advanceCounter(t: CounterTraining): void {
+    const step = t.steps[t.idx];
+    t.model.observe(step.context, step.next);
+    t.idx++;
+    net.setKind('counter');
+    net.show(t.model.distribution(step.context, 1), step.context[step.context.length - 1], step.next);
+    ctx.caption(
+      `counting ${t.idx}/${t.steps.length} · after "${WORDS[step.context[step.context.length - 1]]}" it saw "${WORDS[step.next]}"`,
+    );
+  }
+
+  function advanceNetwork(t: NetTraining): void {
+    const chunk = Math.min(8, EPOCHS - t.epochsDone);
+    const r = t.model.trainEpochs(t.phrases, chunk, LR);
+    t.epochsDone += chunk;
+    t.loss = r.loss;
+    presentModel(net, t.model, demoContext(), 1, null);
+    ctx.caption(`training ${t.epochsDone}/${EPOCHS} passes · loss ${t.loss.toFixed(3)} · ${t.model.paramCount} weights`);
+  }
+
+  function stepOnce(): void {
+    const t = training;
+    if (!t) return;
+    t.paused = true;
+    if (t.kind === 'counter') {
+      if (t.idx < t.steps.length) advanceCounter(t);
+      if (t.idx >= t.steps.length) finishTraining(t);
+    } else {
+      if (t.epochsDone < EPOCHS) advanceNetwork(t);
+      if (t.epochsDone >= EPOCHS) finishTraining(t);
+    }
   }
 
   function finishTraining(t: Training): void {
@@ -256,6 +298,7 @@ export function createTrainingHall(ctx: WorldContext, spawnKey: string): World {
       ctx.toast(`Learned ${t.steps.length} transitions — every note it saw, and the note that followed. Saved as "${entry.name}".`);
     }
     trainedNow = true;
+    refreshStep();
     lastTrain = { kind: t.kind, epochs: t.kind === 'network' ? t.epochsDone : 0, loss: t.kind === 'network' ? t.loss : 0 };
     training = null;
     composerHandle.setCollapsed(false);
@@ -305,6 +348,22 @@ export function createTrainingHall(ctx: WorldContext, spawnKey: string): World {
     },
   });
 
+  stand(0, 1.2, 0x8a8a6a);
+  const stepAnchor = anchorAt(0, 1.2);
+  const stepLabel = dynamicLabel(scene, [0, 2.5, 1.2], 0.58);
+  const refreshStep = () => stepLabel.set(training ? 'Step once' : 'Step through learning');
+  refreshStep();
+  interactables.push({
+    object: stepAnchor,
+    range: 1.9,
+    label: () => (training ? 'Step once' : 'Step through learning'),
+    act: () => {
+      if (training) stepOnce();
+      else train(true);
+      refreshStep();
+    },
+  });
+
   stand(-3.4, 1.2, 0xb5651d);
   const trainAnchor = anchorAt(-3.4, 1.2);
   const trainLabel = dynamicLabel(scene, [-3.4, 2.5, 1.2], 0.62);
@@ -312,7 +371,8 @@ export function createTrainingHall(ctx: WorldContext, spawnKey: string): World {
   interactables.push({
     object: trainAnchor,
     range: 1.9,
-    label: () => (training ? null : '2 · Train on these phrases'),
+    label: () =>
+      training ? (training.paused ? '2 · Train — resume' : null) : '2 · Train on these phrases',
     act: () => train(),
   });
 
@@ -457,6 +517,7 @@ export function createTrainingHall(ctx: WorldContext, spawnKey: string): World {
         current: draft.current,
         busy: training !== null,
         trainKind: training?.kind ?? null,
+        paused: training?.paused ?? false,
         step: training?.kind === 'counter' ? training.idx : 0,
         total: training?.kind === 'counter' ? training.steps.length : 0,
         epochs: training?.kind === 'network' ? training.epochsDone : (lastTrain?.kind === 'network' ? lastTrain.epochs : 0),
@@ -474,36 +535,18 @@ export function createTrainingHall(ctx: WorldContext, spawnKey: string): World {
       glow.intensity = 7 + Math.sin(time * 2.1) * 1.5;
 
       const t = training;
-      if (!t) return;
+      if (!t || t.paused) return;
       if (t.kind === 'counter') {
         const elapsed = ctx.audio.time() - t.start;
-        while (t.idx < t.steps.length && elapsed >= t.idx * t.perStep) {
-          const step = t.steps[t.idx];
-          t.model.observe(step.context, step.next);
-          t.idx++;
-          net.setKind('counter');
-          net.show(
-            t.model.distribution(step.context, 1),
-            step.context[step.context.length - 1],
-            step.next,
-          );
-          ctx.caption(
-            `counting ${t.idx}/${t.steps.length} · after "${WORDS[step.context[step.context.length - 1]]}" it saw "${WORDS[step.next]}"`,
-          );
-        }
+        while (t.idx < t.steps.length && elapsed >= t.idx * t.perStep) advanceCounter(t);
         if (t.idx >= t.steps.length) finishTraining(t);
         return;
       }
 
       const now = ctx.audio.time();
-      if (now - t.lastAt < TICK) return;
+      if (now - t.lastAt < TICK / timeScale()) return;
       t.lastAt = now;
-      const chunk = Math.min(8, EPOCHS - t.epochsDone);
-      const r = t.model.trainEpochs(t.phrases, chunk, LR);
-      t.epochsDone += chunk;
-      t.loss = r.loss;
-      presentModel(net, t.model, demoContext(), 1, null);
-      ctx.caption(`training ${t.epochsDone}/${EPOCHS} passes · loss ${t.loss.toFixed(3)} · ${t.model.paramCount} weights`);
+      advanceNetwork(t);
       if (t.epochsDone >= EPOCHS) finishTraining(t);
     },
     dispose() {

@@ -138,3 +138,246 @@ export const ECHO_HELP: HelpPage = {
     },
   ],
 };
+
+export const GALLERY_HELP: HelpPage = {
+  title: 'The Hall of History',
+  intro:
+    'Three exhibits, in the order the ideas arrived. Each is a room you can walk into, and each bends one idea until you can feel it.',
+  sections: [
+    {
+      heading: 'The exhibits',
+      lines: [
+        'The Perceptron (1958) — one neuron, weights you can nudge, and the XOR wall nobody could climb for twenty years.',
+        'The Signal Board — teach a machine to see numbers or Morse by showing it examples, and watch its weights become pictures of what it expects.',
+        'The Piano Room — the whole idea on one keyboard: play, switch between learning the notes and asking the model to continue them.',
+      ],
+    },
+    {
+      heading: 'The timeline',
+      lines: [
+        'Plaques along the wall tell the short version, from McCulloch & Pitts to large language models.',
+        'Walk up to a plaque and press to read it.',
+      ],
+    },
+    {
+      heading: 'The badge',
+      lines: ['Visit all three exhibits and a token appears on the pedestal by the door.'],
+    },
+  ],
+};
+
+export const PERCEPTRON_HELP: HelpPage = {
+  title: 'The Perceptron (1958)',
+  intro:
+    'The first trainable neuron. It takes two inputs, multiplies each by a weight, adds a bias, and fires if the total passes zero.',
+  sections: [
+    {
+      heading: 'How it learns',
+      lines: [
+        'Show it an example. If it answers correctly, change nothing.',
+        'If it is wrong, nudge every weight toward the right answer: wrong-but-should-fire pushes weights up, wrong-but-fired pushes them down.',
+        'That single rule, applied to examples over and over, is the whole idea of learning from data.',
+      ],
+    },
+    {
+      heading: 'The picture',
+      lines: [
+        'Four examples sit on the board: filled circles want 1, hollow want 0.',
+        'The line is what the neuron currently believes. Learning moves the line until it separates the two kinds.',
+        'AND and OR can be separated by a line. XOR cannot — the two kinds sit on opposite corners.',
+      ],
+    },
+    {
+      heading: 'The wall',
+      lines: [
+        'Try XOR: the mistakes never reach zero, because no straight line can do it.',
+        'That failure, proved plainly in 1969, froze the field for years. The way through is a hidden layer — which is what every later exhibit is built on.',
+      ],
+    },
+    {
+      heading: 'Try this',
+      lines: [
+        '• Train AND one pass at a time and watch the line settle.',
+        '• Then switch to XOR, press Learn until it stops, and read what it says.',
+      ],
+    },
+  ],
+};
+
+export const SIGNAL_HELP: HelpPage = {
+  title: 'The Signal Board',
+  intro:
+    'Many inputs, a few classes, and one tiny learner. You teach it by example; its weights become pictures of what it looks for.',
+  sections: [
+    {
+      heading: 'How to teach it',
+      lines: [
+        'Ink a pattern on the grid — a digit, or a Morse letter.',
+        'Choose the class it belongs to and press Add example. Add several of each.',
+        'Press Train: each class gets its own set of weights, nudged whenever it answers wrongly (one-vs-rest).',
+        'Press Recognise to see what it thinks of the current grid, class by class.',
+      ],
+    },
+    {
+      heading: 'Reading the weights',
+      lines: [
+        'The four small grids are the learned weights for the four classes: gold where ink makes a class more likely, blue where ink argues against it.',
+        'After a few examples they look like ghostly pictures of the patterns themselves.',
+        'That is all a model is here: weights that agree with the examples you gave it. Change the examples and the picture changes.',
+      ],
+    },
+    {
+      heading: 'Numbers and Morse',
+      lines: [
+        'Numbers use a 5×5 grid (25 inputs). Morse uses five positions, each dot / dash / blank (10 inputs).',
+        'Morse is a good lesson in why the input representation matters: the same learner, given a friendlier shape, learns faster.',
+      ],
+    },
+    {
+      heading: 'Try this',
+      lines: [
+        '• Teach it two digits with one example each, then add three more of one digit and watch its weights sharpen.',
+        '• Give it a pattern it has never seen — a slightly wrong digit — and see how sure it is.',
+      ],
+    },
+  ],
+};
+
+export const PIANO_HELP: HelpPage = {
+  title: 'The Piano Room',
+  intro:
+    'The whole idea on one keyboard. One switch decides whether your notes teach the model or ask it to continue.',
+  sections: [
+    {
+      heading: 'Learn mode',
+      lines: [
+        'Every note you play is written into the notebook below the keys.',
+        'Press Train and the model is built from those notes — a counter or a network, your choice — and saved to the shelf with a name.',
+        'Same notebook, same keys, same build as the Training Hall; only the room is bigger.',
+      ],
+    },
+    {
+      heading: 'Inference mode',
+      lines: [
+        'Play a few notes: that is your prompt. Sample borrows an opening if you want a quick start.',
+        'Press Let it continue and the loaded model answers, note by note, with what it expects next.',
+        'Heat and Memory still apply, and the model stand still cycles every model on the shelf.',
+      ],
+    },
+  ],
+};
+
+export const TIMELINE: { year: string; page: HelpPage }[] = [
+  {
+    year: '1943',
+    page: {
+      title: '1943 · A neuron, on paper',
+      intro: 'McCulloch and Pitts describe a nerve cell as arithmetic: add up the signals, fire if the total passes a threshold.',
+      sections: [
+        {
+          heading: 'Why it mattered',
+          lines: [
+            'It said thinking might be made of simple units wired together — the founding assumption of every network since.',
+            'There was no learning yet: someone had to set the dials by hand.',
+          ],
+        },
+      ],
+    },
+  },
+  {
+    year: '1958',
+    page: {
+      title: '1958 · The Perceptron',
+      intro: 'Rosenblatt builds a machine that sets its own dials from examples, and the newspapers promise thinking machines.',
+      sections: [
+        {
+          heading: 'The claim',
+          lines: [
+            'Show it examples and it learns the boundary between them — the exhibit next door walks through exactly this.',
+            'It is also where the hype cycle starts, and where it breaks.',
+          ],
+        },
+      ],
+    },
+  },
+  {
+    year: '1969',
+    page: {
+      title: '1969 · The winter',
+      intro: 'Minsky and Papert prove a single layer cannot learn XOR. Funding freezes; the field goes quiet.',
+      sections: [
+        {
+          heading: 'The lesson',
+          lines: [
+            'A straight line cannot separate XOR, and no amount of training changes that.',
+            'The fix — more layers — was known in principle and unreachable in practice for years.',
+          ],
+        },
+      ],
+    },
+  },
+  {
+    year: '1986',
+    page: {
+      title: '1986 · Backpropagation',
+      intro: 'Rumelhart, Hinton and Williams show how to train many layers at once by sending the error backwards.',
+      sections: [
+        {
+          heading: 'The thaw',
+          lines: [
+            'Hidden layers become trainable, so the XOR wall comes down.',
+            'This is the gradient descent your Piano Room uses when you train a network: real weights, nudged by their share of the blame.',
+          ],
+        },
+      ],
+    },
+  },
+  {
+    year: '2012',
+    page: {
+      title: '2012 · Scale',
+      intro: 'Big data plus graphics cards: a deep network crushes the hand-made image features people had used for decades.',
+      sections: [
+        {
+          heading: 'What changed',
+          lines: [
+            'The maths was old. What was new was enough examples, enough compute, and enough patience.',
+            'The Signal Board makes the same point at toy size: more examples, better weights.',
+          ],
+        },
+      ],
+    },
+  },
+  {
+    year: '2017',
+    page: {
+      title: '2017 · Attention',
+      intro: 'The transformer lets every token weigh every other token, instead of reading strictly left to right.',
+      sections: [
+        {
+          heading: 'Why it scaled',
+          lines: [
+            'It trains in parallel and grows gracefully, which is what made very large models practical.',
+            'The next-token game itself never changed: predict what comes next, then append it.',
+          ],
+        },
+      ],
+    },
+  },
+  {
+    year: '2020s',
+    page: {
+      title: '2020s · Large language models',
+      intro: 'The same next-token game, at a scale you cannot draw. Billions of weights, trained on most of the written web.',
+      sections: [
+        {
+          heading: 'What the halls say about it',
+          lines: [
+            'Nothing new in kind: data becomes weights, weights become expectations, expectations become text.',
+            'What changes with size is how much of the world fits in the weights — and how much we cannot see inside them.',
+          ],
+        },
+      ],
+    },
+  },
+];

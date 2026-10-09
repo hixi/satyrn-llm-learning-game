@@ -29,10 +29,14 @@ server rewrites.
 | `Q` / `R` rotate camera 90° | — |
 | Notebook open: `1`–`8` notes, Backspace undo, Enter train, Esc close | tap the on-screen keys |
 
+A **time** button in the corner slows learning and inference right down
+(1× → 0.5× → 0.25× → 0.1×) so you can watch each step; the Training Hall also
+has a **Step** plinth that teaches one note (or one pass) at a time.
+
 Sound is a built-in Web Audio synth (no audio assets); it starts on your first
 tap or keypress.
 
-## The two halls
+## The halls
 
 Two halves of one idea: a model is its data, and it answers with what its data
 taught it.
@@ -64,6 +68,28 @@ taught it.
 4. Swap models and ask the same prompt again — same question, different
    singer, because the data differed.
 
+- **The Hall of History** — a quiet hall with four objects on plinths, in the
+  order the ideas arrived. Use one and the view *zooms into just that object*:
+  no character, nothing else on screen, one short line telling you what
+  happened.
+  1. *Does it fit?* — a ball above a hole, drawn to size. The machine calls
+     *fit* or *no fit* before the drop, then the ball drops and the truth is
+     physics. Nobody tells it the rule: from the drops alone its two dials
+     settle to "the ball counts against, the hole counts for". You can drag
+     the ball or the hole to hunt for the moment it becomes unsure. The
+     perceptron sits on top, weights and all.
+  2. *The piano* — hum a tune; above the keys you watch how it thinks, then it
+     takes over. Three ways of thinking: **by heart** (only "after this note,
+     usually that one"), **one extra layer**, or **two extra layers** (real
+     hidden layers, trained on the spot). **Keep going** plays on indefinitely
+     and a **stop** knob interrupts whenever you like.
+  3. *Where words live* — words settle into areas by the company they keep;
+     tap one and watch which words it reaches for.
+  4. *Sounding sure* — finish a familiar sentence, then one it has never
+     heard and which makes no sense. It answers confidently anyway: it picks
+     the most likely next word, not the true one. That is the thing to design
+     around.
+
 Each hall has a **help desk** — a lectern marked *"Help — what is this?"*. It
 opens a scrollable explanation of that hall: the steps, what the model
 actually is, what every control does, and things to try. If something is ever
@@ -92,10 +118,14 @@ server rewrites.
 | `Q` / `R` rotate camera 90° | — |
 | Notebook open: `1`–`8` notes, Backspace undo, Enter train, Esc close | tap the on-screen keys |
 
+A **time** button in the corner slows learning and inference right down
+(1× → 0.5× → 0.25× → 0.1×) so you can watch each step; the Training Hall also
+has a **Step** plinth that teaches one note (or one pass) at a time.
+
 Sound is a built-in Web Audio synth (no audio assets); it starts on your first
 tap or keypress.
 
-## The two halls
+## The halls
 
 The clearing holds exactly two enterable halls — two halves of one idea: a
 model is its data, and it answers with what its data taught it.
@@ -116,6 +146,28 @@ Training shows where behaviour comes from (counting which note follows which);
 inference lets you interrogate it (sampling, temperature, context) and compare
 models. The old songs are the pretrained model, your phrases are one you made.
 Nothing is hidden — the drawn network is the whole model.
+
+- **The Hall of History** — a quiet hall with four objects on plinths, in the
+  order the ideas arrived. Use one and the view *zooms into just that object*:
+  no character, nothing else on screen, one short line telling you what
+  happened.
+  1. *Does it fit?* — a ball above a hole, drawn to size. The machine calls
+     *fit* or *no fit* before the drop, then the ball drops and the truth is
+     physics. Nobody tells it the rule: from the drops alone its two dials
+     settle to "the ball counts against, the hole counts for". You can drag
+     the ball or the hole to hunt for the moment it becomes unsure. The
+     perceptron sits on top, weights and all.
+  2. *The piano* — hum a tune; above the keys you watch how it thinks, then it
+     takes over. Three ways of thinking: **by heart** (only "after this note,
+     usually that one"), **one extra layer**, or **two extra layers** (real
+     hidden layers, trained on the spot). **Keep going** plays on indefinitely
+     and a **stop** knob interrupts whenever you like.
+  3. *Where words live* — words settle into areas by the company they keep;
+     tap one and watch which words it reaches for.
+  4. *Sounding sure* — finish a familiar sentence, then one it has never
+     heard and which makes no sense. It answers confidently anyway: it picks
+     the most likely next word, not the true one. That is the thing to design
+     around.
 
 Each hall has a **help desk** — a lectern marked *"Help — what is this?"*. It
 opens a scrollable explanation of that hall: the steps, what the model

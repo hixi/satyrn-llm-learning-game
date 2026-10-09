@@ -18,6 +18,7 @@ export function createHub(ctx: WorldContext, spawnKey: string): World {
 
   // a path north from the clearing, with arms to the two halls
   addBox(scene, [2.2, 0.06, 12], [0, 0.03, 0.4], palette.path);
+  addBox(scene, [2.2, 0.06, 6.0], [0, 0.03, 6.6], palette.path);
   addBox(scene, [9.5, 0.06, 1.7], [-4.7, 0.03, -1.8], palette.path);
   addBox(scene, [9.5, 0.06, 1.7], [4.7, 0.03, -1.8], palette.path);
 
@@ -38,6 +39,16 @@ export function createHub(ctx: WorldContext, spawnKey: string): World {
     name: 'The Echo Hall',
     doorLabel: 'Enter the Echo Hall',
     route: 'echo.door',
+    onEnter: (route) => ctx.transition(route),
+  });
+  addBuilding(scene, colliders, interactables, ctx, {
+    x: 0,
+    z: 15,
+    rotY: Math.PI,
+    roofColor: 0x6a5a3a,
+    name: 'The Hall of History',
+    doorLabel: 'Enter the Hall of History',
+    route: 'history.door',
     onEnter: (route) => ctx.transition(route),
   });
 
@@ -76,6 +87,9 @@ export function createHub(ctx: WorldContext, spawnKey: string): World {
       break;
     case 'fromEcho':
       ctx.player.teleport(7.2, -2, -Math.PI / 2);
+      break;
+    case 'fromHistory':
+      ctx.player.teleport(0, 9.6, Math.PI);
       break;
     default:
       ctx.player.teleport(0, 6.5, Math.PI);

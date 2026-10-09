@@ -208,3 +208,106 @@ body.touch #touch { display: block; }
   pointer-events: none; transition: opacity .28s ease;
 }
 #fade.black { opacity: 1; }
+
+/* Signal Board exhibit */
+.signal-row { display: flex; gap: .8rem; align-items: flex-start; }
+.sig-grid { display: grid; grid-template-columns: repeat(var(--cols, 5), 2rem); gap: .2rem; }
+.sig-cell { width: 2rem; height: 2rem; padding: 0; border-radius: 5px; background: rgba(244,236,216,.08); }
+.sig-cell.on { background: rgba(217,164,65,.55); border-color: rgba(217,164,65,.9); }
+.sig-side { display: flex; flex-direction: column; gap: .3rem; flex: 1; min-width: 12rem; }
+.sig-labels { display: flex; gap: .3rem; flex-wrap: wrap; }
+.sig-label { font-size: .74rem; padding: .3rem .5rem; }
+.sig-label.on { background: rgba(217,164,65,.3); border-color: rgba(217,164,65,.8); }
+.sig-scores { font-size: .74rem; color: var(--accent); min-height: 1.1rem; }
+.sig-map { border-radius: 8px; border: 1px solid rgba(244,236,216,.15); width: 100%; }
+
+/* The Piano Room exhibit */
+.piano .piano-key { padding: 1.1rem .2rem; }
+.piano .piano-key b { font-size: 1.2rem; }
+.piano .piano-key i { font-size: .68rem; }
+.piano .piano-sheet { width: min(97vw, 52rem); }
+
+/* Full-screen expositions: direct, no character */
+#expo-host { position: absolute; inset: 0; pointer-events: none; }
+#expo {
+  position: absolute; inset: 0; background: rgba(10,8,14,.93);
+  display: grid; place-items: center; overflow-y: auto; touch-action: pan-y;
+  pointer-events: auto; padding: 1rem;
+}
+#expo[hidden] { display: none; }
+#expo-panel { width: min(96vw, 52rem); max-height: 92vh; overflow-y: auto; touch-action: pan-y; padding: .4rem .2rem 1.4rem; color: var(--paper); }
+#expo-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+#expo-title { font-size: .92rem; color: var(--accent); text-transform: uppercase; letter-spacing: .1em; opacity: .85; }
+#expo-intro p { font-size: 1.02rem; line-height: 1.55; margin: .4rem 0; }
+#expo-stage { margin: .9rem 0; }
+.expo-canvas { width: 100%; height: auto; display: block; border-radius: 12px; border: 1px solid rgba(244,236,216,.16); touch-action: none; }
+.expo-controls { display: flex; flex-direction: column; gap: .45rem; margin-top: .6rem; }
+.expo-row { display: flex; gap: .4rem; flex-wrap: wrap; }
+.expo-row .ui-btn { font-size: .95rem; padding: .6rem .9rem; }
+.expo-row .ui-btn.on { background: rgba(217,164,65,.35); border-color: rgba(217,164,65,.9); }
+#expo-say {
+  font-size: 1.05rem; line-height: 1.45; min-height: 1.6rem; margin: .5rem 0 .2rem;
+  border-left: 3px solid var(--accent); padding-left: .7rem;
+}
+#expo-say.flash { animation: say-flash .35s ease; }
+@keyframes say-flash { from { opacity: .15; } to { opacity: 1; } }
+#expo-grown { font-size: .72rem; opacity: .55; margin-top: .6rem; font-style: italic; }
+.expo-hint { font-size: .8rem; opacity: .65; margin-top: .5rem; }
+.expo-cards { display: grid; gap: .6rem; }
+.expo-card { display: flex; flex-direction: column; align-items: flex-start; gap: .3rem; text-align: left; padding: .9rem 1rem; }
+.expo-card b { font-size: 1.15rem; color: var(--accent); }
+.expo-card span { font-size: .9rem; opacity: .85; }
+.expo-words { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .6rem; }
+.expo-word { font-size: .8rem; padding: .3rem .6rem; }
+.expo-milestones { margin-top: 1.3rem; }
+.expo-milestones h3 { font-size: .85rem; color: var(--accent); font-variant: small-caps; letter-spacing: .06em; margin-bottom: .4rem; }
+.expo-milestones p { font-size: .82rem; line-height: 1.45; opacity: .8; margin-bottom: .3rem; }
+
+/* The model above the keys, and the keyboard itself */
+.piano-model { width: 100%; height: auto; display: block; border-radius: 10px; border: 1px solid rgba(244,236,216,.14); }
+
+.piano-keys { display: flex; gap: 4px; margin-top: .5rem; }
+.piano-key {
+  flex: 1; height: 9rem; padding: .5rem .2rem 0; border-radius: 0 0 10px 10px;
+  background: linear-gradient(#fdfaf0, #e6ddc8); color: #2a2620;
+  border: 1px solid #b3a992; box-shadow: inset 0 -8px 14px rgba(0,0,0,.16), 0 3px 0 #9c9280;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+}
+.piano-key b { font-size: 1.5rem; font-family: Georgia, serif; }
+.piano-key.on { background: linear-gradient(#f6dca6, #dfae5c); box-shadow: inset 0 -4px 10px rgba(120,80,20,.3), 0 1px 0 #9c9280; }
+.piano-ribbon { margin-top: .6rem; font-size: 1rem; letter-spacing: .18em; opacity: .8; min-height: 1.4rem; }
+
+/* Piano modes and the run controls */
+.piano-controls { margin-top: .6rem; display: flex; flex-direction: column; gap: .4rem; }
+.piano-controls .ui-btn { font-size: .82rem; padding: .45rem .7rem; }
+.piano-controls .ui-btn.on { background: rgba(217,164,65,.32); border-color: rgba(217,164,65,.85); }
+.piano-stop:disabled { opacity: .35; }
+
+/* Does it fit? */
+.fit-model { width: 100%; max-width: 640px; height: auto; margin: 0 auto; display: block; border-radius: 10px; border: 1px solid rgba(244,236,216,.14); touch-action: none; }
+.fit-controls { margin-top: .7rem; }
+.fit-call { font-size: 1.05rem; margin-bottom: .5rem; }
+.fit-call.right { color: #9fd69f; }
+.fit-call.wrong { color: #e6827a; }
+.fit-controls .ui-btn { font-size: 1rem; padding: .65rem 1rem; }
+.fit-score { margin-top: .6rem; font-size: .9rem; opacity: .85; }
+
+/* The old doorman styles (unused) */
+.doorman-model { width: 100%; height: auto; display: block; border-radius: 10px; border: 1px solid rgba(244,236,216,.14); }
+.doorman-controls { margin-top: .7rem; }
+.doorman-call { font-size: 1.1rem; margin-bottom: .5rem; }
+.doorman-call.right { color: #9fd69f; }
+.doorman-call.wrong { color: #e6827a; }
+.doorman-row .ui-btn, .doorman-controls .ui-btn { font-size: 1rem; padding: .7rem 1rem; }
+.doorman-score { margin-top: .6rem; font-size: .9rem; opacity: .85; }
+
+/* The confident answer object */
+.sentence { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; font-size: 1.7rem; font-family: Georgia, serif; margin: .8rem 0; }
+.sentence-slot {
+  min-width: 6rem; font-size: 1.5rem; padding: .2rem .8rem; border-bottom: 3px solid var(--accent);
+  background: rgba(217,164,65,.08); border-radius: 6px 6px 0 0;
+}
+.sentence-slot.filled { background: rgba(217,164,65,.28); border-color: var(--accent); }
+.sentence-slot.sure { color: var(--accent); }
+.sentence-slot.guessing { opacity: .8; }
+.sentence-next { margin-top: 1.2rem; }
